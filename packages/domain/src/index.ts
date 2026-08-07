@@ -6,3 +6,4 @@
  */
 export * from "./similarity.js";
 export * from "./taxonomy.js";
+export * from "./money.js";

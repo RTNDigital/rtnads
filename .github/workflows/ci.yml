@@ -66,6 +66,8 @@ jobs:
           psql "$DATABASE_URL" -tAc \
             "SELECT f.spend_minor FROM facts.entity_daily f JOIN core.ad a ON a.id=f.entity_id AND f.entity_type='ad' WHERE a.external_id='ad_4001';" \
             | grep -qx 4210
+      - name: Analytics engine over the warehouse (integration)
+        run: pnpm --filter @rtnads/analytics-engine test
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'

@@ -11,11 +11,10 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: Foundations (Milestone M0) in progress.**
+> **Status: M0 complete · M1 (analytics & context) in progress.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. Implementation has begun with the M0 foundations — the
-> monorepo, typed contracts, the deterministic domain math, and the database
-> model with tenancy — per [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. M0 (foundations) is done; M1 has begun with the deterministic
+> Analytics Engine. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -39,17 +38,21 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
 | Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
 | Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
+| Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
 
-Everything above is verified: `pnpm test` (30 tests) plus two end-to-end DB
-checks — one applies all migrations + seed and proves cross-tenant isolation; the
-other runs the Meta connector read-path from fixtures into normalized
-`core`/`facts` and spot-checks the numbers (idempotent on replay). Both run in
-[CI](./.github/workflows/ci.yml).
+Everything above is verified: `pnpm test` (40 unit/property tests) plus end-to-end
+DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS isolation; the
+Meta read-path from fixtures into normalized `core`/`facts` (idempotent on
+replay); and the Analytics Engine computing correct numbers straight off the
+loaded warehouse.
 
-This completes Milestone **M0 — Foundations**
-([docs/13](./docs/13-mvp-milestones.md)): a real account's data path now flows
-`raw fixture → normalized facts`, with taxonomy/dimensions extensible as data and
-tenancy enforced at the database.
+**M0 — Foundations** is complete: a real account's data path flows `raw fixture →
+normalized facts`, with taxonomy/dimensions extensible as data and tenancy
+enforced at the database. **M1 — Analytics & context** has begun: the Analytics
+Engine deterministically computes totals, derived metrics, the Health Tourism
+funnel, and business-specific unit economics (cost per qualified lead, cost per
+booking, CAC, revenue per lead — not CPL alone). Numbers are computed here, never
+by an LLM.
 
 ---
 
