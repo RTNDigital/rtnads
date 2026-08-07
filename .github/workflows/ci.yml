@@ -40,9 +40,15 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/rtnads
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - name: Apply migrations
         run: node --experimental-strip-types db/migrate.ts
       - name: Apply seed
@@ -51,6 +57,15 @@ jobs:
         run: |
           psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.node;" | grep -qx 10
           psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.funnel_stage;" | grep -qx 6
+      - name: Connector read-path (fixture → normalized core/facts)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "INSERT INTO iam.client (id, name) VALUES ('cccccccc-0000-0000-0000-000000000001','RhinoUK') ON CONFLICT DO NOTHING;"
+          node scripts/emit-sync.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # spot-check a normalized fact came through (£42.10 → 4210 minor units)
+          psql "$DATABASE_URL" -tAc \
+            "SELECT f.spend_minor FROM facts.entity_daily f JOIN core.ad a ON a.id=f.entity_id AND f.entity_type='ad' WHERE a.external_id='ad_4001';" \
+            | grep -qx 4210
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'

@@ -8,6 +8,7 @@
  */
 export * from "./common.js";
 export * from "./taxonomy.js";
+export * from "./warehouse.js";
 export * from "./recommendation.js";
 export * from "./events.js";
 export * as AdsAnalyticsMcp from "./mcp/analytics.js";

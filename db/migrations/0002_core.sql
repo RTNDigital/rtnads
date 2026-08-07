@@ -62,12 +62,13 @@ CREATE INDEX IF NOT EXISTS ad_set_campaign_idx ON core.ad_set (campaign_id);
 CREATE TABLE IF NOT EXISTS core.creative (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id   uuid NOT NULL REFERENCES iam.client(id) ON DELETE CASCADE,
-  external_id text,
+  external_id text NOT NULL,
   format      text,                              -- video | image | carousel | ugc
   asset_ref   text,
   fingerprint text,
   -- embedding vector(1024)  -- enabled with pgvector in a later milestone
-  created_at  timestamptz NOT NULL DEFAULT now()
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (client_id, external_id)
 );
 CREATE INDEX IF NOT EXISTS creative_client_idx ON core.creative (client_id);
 

@@ -35,12 +35,21 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 
 | Area | Location | State |
 |------|----------|-------|
-| Typed boundary contracts (Zod → TS) | [`packages/contracts`](./packages/contracts) | common, taxonomy, recommendation, events, Ads Analytics MCP I/O + tests |
+| Typed boundary contracts (Zod → TS) | [`packages/contracts`](./packages/contracts) | common, taxonomy, warehouse rows, recommendation, events, Ads Analytics MCP I/O + tests |
 | Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
 | Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
+| Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
 
-Everything above is verified: `pnpm test` (23 tests) plus an end-to-end DB check
-that applies all migrations + seed and proves cross-tenant isolation.
+Everything above is verified: `pnpm test` (30 tests) plus two end-to-end DB
+checks — one applies all migrations + seed and proves cross-tenant isolation; the
+other runs the Meta connector read-path from fixtures into normalized
+`core`/`facts` and spot-checks the numbers (idempotent on replay). Both run in
+[CI](./.github/workflows/ci.yml).
+
+This completes Milestone **M0 — Foundations**
+([docs/13](./docs/13-mvp-milestones.md)): a real account's data path now flows
+`raw fixture → normalized facts`, with taxonomy/dimensions extensible as data and
+tenancy enforced at the database.
 
 ---
 
