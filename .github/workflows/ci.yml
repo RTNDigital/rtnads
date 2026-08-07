@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-test:
+    name: build · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  database:
+    name: migrations · seed · RLS isolation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rtnads
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/rtnads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply migrations
+        run: node --experimental-strip-types db/migrate.ts
+      - name: Apply seed
+        run: node --experimental-strip-types db/seed.ts
+      - name: Verify seed counts
+        run: |
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.node;" | grep -qx 10
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.funnel_stage;" | grep -qx 6
+      - name: RLS isolation (fail-closed) test
+        run: |
+          psql "$DATABASE_URL" <<'SQL'
+          \set ON_ERROR_STOP on
+          INSERT INTO iam.client (id, name) VALUES
+            ('aaaaaaaa-0000-0000-0000-000000000001','A'),
+            ('bbbbbbbb-0000-0000-0000-000000000002','B');
+          INSERT INTO core.ad_account (id, client_id, platform_id, external_id, name, currency)
+            SELECT 'aaaaaaaa-0000-0000-0000-0000000000a1','aaaaaaaa-0000-0000-0000-000000000001',p.id,'a','A','GBP' FROM core.platform p WHERE p.key='meta';
+          INSERT INTO core.campaign (client_id, ad_account_id, external_id, name)
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000001','aaaaaaaa-0000-0000-0000-0000000000a1','c','A');
+          SQL
+          # scoped to A → 1 row; unscoped → 0 rows (fail-closed)
+          A=$(psql "$DATABASE_URL" -tAc "SET ROLE rtnads_app; SET app.client_id='aaaaaaaa-0000-0000-0000-000000000001'; SELECT count(*) FROM core.campaign;")
+          N=$(psql "$DATABASE_URL" -tAc "SET ROLE rtnads_app; SELECT count(*) FROM core.campaign;")
+          echo "scoped=$A unscoped=$N"
+          test "$A" = "1"
+          test "$N" = "0"

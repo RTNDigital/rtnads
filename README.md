@@ -11,10 +11,36 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: Architecture / specification phase.**
-> This repository currently contains **architecture documentation only**. No
-> application code has been written yet. Implementation begins only after the
-> specifications in [`docs/`](./docs) are reviewed and approved.
+> **Status: Foundations (Milestone M0) in progress.**
+> The architecture specification in [`docs/`](./docs) is complete and remains the
+> source of truth. Implementation has begun with the M0 foundations — the
+> monorepo, typed contracts, the deterministic domain math, and the database
+> model with tenancy — per [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+
+## Getting started
+
+```bash
+pnpm install
+pnpm build          # build shared packages (contracts → domain)
+pnpm typecheck      # strict TypeScript across the workspace
+pnpm test           # unit + property tests (contracts, domain math)
+
+# database (needs a reachable PostgreSQL)
+export DATABASE_URL=postgres://user:pass@localhost:5432/rtnads
+pnpm db:migrate     # apply schema + RLS
+pnpm db:seed        # load taxonomy / dimension / funnel reference data
+```
+
+### What exists today (M0)
+
+| Area | Location | State |
+|------|----------|-------|
+| Typed boundary contracts (Zod → TS) | [`packages/contracts`](./packages/contracts) | common, taxonomy, recommendation, events, Ads Analytics MCP I/O + tests |
+| Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
+| Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
+
+Everything above is verified: `pnpm test` (23 tests) plus an end-to-end DB check
+that applies all migrations + seed and proves cross-tenant isolation.
 
 ---
 
