@@ -11,11 +11,12 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: M0 complete · M1 complete · M2 complete.**
+> **Status: M0 complete · M1 complete · M2 complete · M3 (recommendations) in progress.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. Foundations, the analytics stack, the first MCP domain, the
-> Benchmark Engine and the Classifier are in — cohort benchmarking now runs
-> end-to-end on real warehouse data. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. Foundations, the analytics stack, MCP, the Benchmark Engine and
+> the Classifier are in — cohort benchmarking runs end-to-end on real warehouse
+> data — and M3 has begun with the deterministic Decision Engine.
+> See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -43,6 +44,7 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
 | Deterministic benchmarking (L3) | [`services/benchmark-engine`](./services/benchmark-engine) | influence-weighted cohorts, weighted benchmarks, robust anomaly detection; **no LLM** |
 | Context classifier (L2/L3) | [`services/classifier`](./services/classifier) | rule + ingested context-vector assignment (sourced, confidence-scored); idempotent loader |
+| Decision Engine (L3) | [`services/decision-engine`](./services/decision-engine) | benchmark + anomaly + rules → candidate recommendation **drafts** with deterministic confidence/risk; **no LLM, no narrative** |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
@@ -79,6 +81,16 @@ builds cohorts straight from the warehouse — so the whole M2 loop is proven
 end-to-end on real data: a dissimilar dental/DE campaign is correctly excluded
 from a rhinoplasty/UK cohort, stale campaigns carry less influence than recent
 ones, and the subject is benchmarked against the weighted distribution.
+
+**M3 — Recommendations** has begun with the **Decision Engine**: it turns an
+evidence bundle (benchmark + anomaly + supporting metrics) into candidate
+recommendation *drafts* with deterministic confidence and risk. Confidence is a
+function of evidence strength, sample adequacy, recency and **causal support —
+which defaults to "weak"** because historical outcomes are evidence, not proof of
+causation. When the cohort is insufficient it recommends nothing (observe). The
+drafts deliberately omit `reasoning` and `model_provenance` — those are added
+later by the AI Orchestrator (L5); the numbers are all computed here, never by an
+LLM.
 
 ---
 

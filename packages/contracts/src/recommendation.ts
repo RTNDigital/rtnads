@@ -58,6 +58,31 @@ export const ModelProvenance = z.object({
 });
 export type ModelProvenance = z.infer<typeof ModelProvenance>;
 
+/**
+ * The DETERMINISTIC part of a recommendation, produced by the Decision Engine
+ * (L3). It carries every field except the LLM-authored narrative and identity —
+ * `reasoning`, `model_provenance`, `id`, `created_at`, `status` are added later by
+ * the AI Orchestrator (L5). Numbers here come from analytics/benchmark, never an
+ * LLM (docs/07 §Decision Engine, docs/11 §6a).
+ */
+export const RecommendationDraft = z.object({
+  recommendation_type: RecommendationType,
+  entity: EntityRef,
+  recommended_action: z.record(z.string(), z.unknown()),
+  supporting_metrics: z.record(z.string(), z.unknown()),
+  benchmark_comparison: BenchmarkComparison,
+  confidence_score: z.number().min(0).max(1),
+  confidence_detail: ConfidenceDetail,
+  risk_level: RiskLevel,
+  expected_outcome: ExpectedOutcome,
+  evidence_window: DateWindow,
+  recommended_observation_period: z.string(),
+  causation_note: z
+    .string()
+    .default("Historical outcomes are evidence, not proof of causation."),
+});
+export type RecommendationDraft = z.infer<typeof RecommendationDraft>;
+
 export const Recommendation = z.object({
   id: Uuid,
   client_id: Uuid,
