@@ -39,7 +39,7 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Typed boundary contracts (Zod → TS) | [`packages/contracts`](./packages/contracts) | common, taxonomy, warehouse rows, recommendation, events, Ads Analytics MCP I/O + tests |
 | Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
 | Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
-| Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
+| Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta **live Graph API** or fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
 | CRM connector read-path (L1) | [`services/connectors-crm`](./services/connectors-crm) | Fixture → **pseudonymize (PII dropped)** → validated `NormalizedCrmSync` → loader (`crm.lead/funnel_event/sale`) |
 | Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
 | Deterministic benchmarking (L3) | [`services/benchmark-engine`](./services/benchmark-engine) | influence-weighted cohorts, weighted benchmarks, robust anomaly detection; **no LLM** |
@@ -184,6 +184,21 @@ integration on every push.
 export DATABASE_URL=postgres://…/rtnads
 node services/bff/scripts/seed-recommendation.mjs <client-uuid>   # persist a recommendation
 DEMO_CLIENT_ID=<client-uuid> pnpm --filter @rtnads/bff dev        # serve console at :8787
+```
+
+### Live Meta ingest
+
+The Meta connector has a live Graph API source (`HttpMetaSource`) alongside the
+fixtures — same pure mapper downstream, so the live and fixture paths are
+identical. It handles pagination and retry/backoff on 429/5xx, and the **access
+token lives only in the L1 boundary** (from the environment) — it never reaches
+the SQL, logs, MCP payloads or the LLM, and is redacted from error messages. It is
+tested deterministically with an injected `fetch` (no live account). To ingest a
+real account:
+
+```bash
+META_ACCESS_TOKEN=… META_ACCOUNT_ID=act_123 \
+  node scripts/ingest-meta.mjs <client-uuid> 2026-07-01 2026-07-31 | psql "$DATABASE_URL" -f -
 ```
 
 ---
