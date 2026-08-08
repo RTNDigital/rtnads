@@ -11,12 +11,12 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: M0–M3 complete · M4 (approval + controlled actions) in progress.**
+> **Status: M0–M4 complete — the MVP intelligence + controlled-action loop is in.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. The read-only intelligence loop (ingest → analytics → benchmark
-> → recommendation → narrative) is in and proven on real data. M4 has begun with
-> the deterministic **Policy Engine** and the **Ads Actions MCP** — the gated
-> write path. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. The full loop is implemented and tested: ingest → analytics →
+> benchmark → recommendation → narrative → **policy gate → human approval →
+> execution → immutable record + hash-chained audit**, human-in-the-loop
+> throughout. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -49,6 +49,7 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | AI Orchestrator (L5) | [`services/orchestrator`](./services/orchestrator) | authors the recommendation narrative over grounded evidence; **numeric-authorship guard**; records provenance; **computes nothing** |
 | Policy Engine (L6) | [`services/policy-engine`](./services/policy-engine) | deterministic, **unbypassable, fail-closed** gate → allow / needs_approval / deny with exact violated constraints |
 | Ads Actions MCP (L4) | [`mcp-servers/ads-actions-mcp`](./mcp-servers/ads-actions-mcp) | preview (pure) + gated write **requests**; every write routes through the Policy Engine, **none executes directly** |
+| Action Executor + audit (L6) | [`services/action-executor`](./services/action-executor) | executes only approved+gated actions; **immutable** pre/post records; rollback; append-only **hash-chained audit** (tamper-evident) |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
@@ -115,8 +116,19 @@ tier, daily-spend limit, active-experiment protection, account restrictions). Th
 AI cannot bypass it, and a missing policy denies by default. The **Ads Actions
 MCP** exposes preview (pure) and gated write tools — every write builds a proposed
 change, routes it through the Policy Engine, and returns `rejected_by_policy |
-pending_approval | queued`; it **never executes** a mutation itself. Execution,
-approval records and rollback (the Action Executor) are the next step.
+pending_approval | queued`; it **never executes** a mutation itself.
+
+The **Action Executor** (L6) is the sole component that performs a mutation, and
+only for an action that passed the Policy Engine **and** (where required) human
+approval — it refuses a denied or unapproved action outright. Every execution
+captures an **immutable** pre/post-state record and appends to an append-only,
+**hash-chained audit log** in which tampering with any past entry breaks the chain
+and is detectable; rollback is supported where the platform permits. The `control`
+schema (migration 0009) persists approvals, actions, immutable records, outcome
+evaluations and the audit chain, with the audit table granted **INSERT + SELECT
+only** (never UPDATE/DELETE) to the app role. This closes the MVP's controlled
+write path: **recommend → approve → policy-gate → execute → immutable record +
+audit**, human-in-the-loop throughout.
 
 ---
 
