@@ -23,6 +23,9 @@ importers:
       '@rtnads/analytics-engine':
         specifier: workspace:*
         version: link:../../services/analytics-engine
+      '@rtnads/benchmark-engine':
+        specifier: workspace:*
+        version: link:../../services/benchmark-engine
       '@rtnads/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -93,6 +96,25 @@ importers:
       '@types/pg':
         specifier: ^8.11.10
         version: 8.20.4
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@26.1.2)
+
+  services/benchmark-engine:
+    dependencies:
+      '@rtnads/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@rtnads/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

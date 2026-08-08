@@ -11,10 +11,11 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: M0 complete · M1 (analytics & context) in progress.**
+> **Status: M0 complete · M1 complete · M2 (cohorts & benchmarks) in progress.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. M0 (foundations) is done; M1 has begun with the deterministic
-> Analytics Engine. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. Foundations, the analytics stack and the first MCP domain are
+> in; M2 has added the deterministic Benchmark Engine and its cohort/anomaly MCP
+> tools. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -40,9 +41,10 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
 | CRM connector read-path (L1) | [`services/connectors-crm`](./services/connectors-crm) | Fixture → **pseudonymize (PII dropped)** → validated `NormalizedCrmSync` → loader (`crm.lead/funnel_event/sale`) |
 | Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
-| Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over the engine; capability-gated; **thin adapter, no logic** |
+| Deterministic benchmarking (L3) | [`services/benchmark-engine`](./services/benchmark-engine) | influence-weighted cohorts, weighted benchmarks, robust anomaly detection; **no LLM** |
+| Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
-Everything above is verified: `pnpm test` (53 unit/property/round-trip tests) plus
+Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
 end-to-end DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS
 isolation; the Meta read-path into normalized `core`/`facts`; the CRM read-path
 with a **PII-leak scan** (no name/email/phone reaches the analytical store); the
@@ -60,6 +62,15 @@ not CPL alone. The first MCP domain — **Ads Analytics MCP** — now exposes th
 read-only, capability-gated tools, realizing the core boundary: the AI reaches
 analytics *only* through MCP and never computes a number itself. PII never leaves
 L1.
+
+**M2 — Cohorts & benchmarks** is underway: the Benchmark Engine builds
+influence-weighted cohorts of historically similar RTN campaigns
+(`influence = f(similarity)·g(recency)·h(sample)·q(quality)` — stale data does not
+count the same as recent), benchmarks a subject against them (weighted
+percentiles + direction-aware assessment), and flags anomalies with a robust
+median/MAD z-score. These surface as three more MCP tools —
+`find_similar_campaigns`, `compare_with_cohort`, `detect_anomalies`. Empty cohorts
+and flat series yield explicit "insufficient evidence", never fabricated numbers.
 
 ---
 

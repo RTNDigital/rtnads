@@ -12,6 +12,7 @@ import {
   UnitEconomicsModel,
 } from "@rtnads/contracts";
 import type { AnalyticsEngine } from "@rtnads/analytics-engine";
+import type { BenchmarkEngine } from "@rtnads/benchmark-engine";
 import { ratio } from "@rtnads/domain";
 
 /**
@@ -40,8 +41,24 @@ export const PROVENANCE = "analytics-engine@0.1.0";
 
 export interface ToolContext {
   engine: AnalyticsEngine;
+  /** Optional benchmark engine; enables the cohort/anomaly tools when present. */
+  benchmark?: BenchmarkEngine;
   /** Injectable clock so responses are testable; defaults to wall time. */
   now?: () => string;
+}
+
+export function requireCap(
+  authz: z.infer<typeof Authz>,
+  cap: string,
+): void {
+  requireCapability(authz, cap);
+}
+
+export function makeResponseMeta(
+  ctx: ToolContext,
+  window: z.infer<typeof DateWindow>,
+): z.infer<typeof ResponseMeta> {
+  return makeMeta(ctx, window);
 }
 
 function makeMeta(

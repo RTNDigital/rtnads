@@ -1,7 +1,7 @@
 {
-  "name": "@rtnads/ads-analytics-mcp",
+  "name": "@rtnads/benchmark-engine",
   "version": "0.1.0",
-  "description": "Ads Analytics MCP — read-only, thin adapter over the L3 Analytics Engine",
+  "description": "L3 deterministic benchmarking — cohorts, weighted benchmarks, anomalies (no LLM)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,17 +17,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "@rtnads/analytics-engine": "workspace:*",
-    "@rtnads/benchmark-engine": "workspace:*",
     "@rtnads/contracts": "workspace:*",
     "@rtnads/domain": "workspace:*",
-    "pg": "^8.13.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.5",
-    "@types/pg": "^8.11.10",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
   }

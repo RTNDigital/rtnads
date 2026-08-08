@@ -6,4 +6,5 @@
  * the warehouse or computes numbers (docs/04, docs/05 §A).
  */
 export * from "./tools.js";
+export * from "./tools-benchmark.js";
 export * from "./server.js";
