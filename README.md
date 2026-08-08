@@ -49,7 +49,7 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | AI Orchestrator (L5) | [`services/orchestrator`](./services/orchestrator) | authors the recommendation narrative over grounded evidence; **numeric-authorship guard**; records provenance; **computes nothing** |
 | Policy Engine (L6) | [`services/policy-engine`](./services/policy-engine) | deterministic, **unbypassable, fail-closed** gate → allow / needs_approval / deny with exact violated constraints |
 | Ads Actions MCP (L4) | [`mcp-servers/ads-actions-mcp`](./mcp-servers/ads-actions-mcp) | preview (pure) + gated write **requests**; every write routes through the Policy Engine, **none executes directly** |
-| Action Executor + audit (L6) | [`services/action-executor`](./services/action-executor) | executes only approved+gated actions; **immutable** pre/post records; rollback; append-only **hash-chained audit** (tamper-evident) |
+| Action Executor + audit (L6) | [`services/action-executor`](./services/action-executor) | executes only approved+gated actions; **immutable** pre/post records; rollback; append-only **hash-chained audit** (tamper-evident); Postgres persistence for the control plane |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
@@ -139,6 +139,13 @@ decision → orchestrator (scripted LLM) → policy → approval → execution �
 hash-chained audit → outcome, plus the negative path proving a policy-denied
 recommendation never reaches execution. No real LLM and no live platform are
 needed, so it runs in CI.
+
+The control plane is also **persisted to Postgres**: approvals, actions and
+immutable action records are written through a store, and the hash-chained audit
+log is appended in the database (the audit table is INSERT+SELECT-only for the app
+role). A CI integration test persists an approved action, executes it, stores the
+immutable record and verifies the audit chain **in the database** — the write path
+proven on real Postgres end to end.
 
 ---
 

@@ -62,18 +62,28 @@ export function appendEntry(prev: AuditEntry | null, input: AuditInput): AuditEn
   };
 }
 
-/** Verify a full chain: linkage, sequence and recomputed hashes. */
+/**
+ * Verify a full chain: strictly-increasing sequence, prev_hash linkage, and
+ * recomputed hashes. Works for any monotonic seq (in-memory chains start at 0,
+ * a Postgres bigserial chain starts at 1) — integrity rests on the hash linkage,
+ * not on a specific starting index.
+ */
 export function verifyChain(entries: readonly AuditEntry[]): boolean {
   let prevHash = GENESIS_HASH;
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i]!;
-    if (e.seq !== i) return false;
+  let prevSeq: number | null = null;
+  for (const e of entries) {
+    if (prevSeq !== null && e.seq <= prevSeq) return false;
     if (e.prev_hash !== prevHash) return false;
-    const recomputed = computeHash(prevHash, e.seq, e);
-    if (recomputed !== e.hash) return false;
+    if (computeHash(prevHash, e.seq, e) !== e.hash) return false;
     prevHash = e.hash;
+    prevSeq = e.seq;
   }
   return true;
+}
+
+/** An append-only audit sink — in-memory or Postgres-backed. */
+export interface AuditSink {
+  append(input: AuditInput): AuditEntry | Promise<AuditEntry>;
 }
 
 /** In-memory append-only audit log for tests and fixtures. */

@@ -1,5 +1,5 @@
 import { ActionRecord, type Action } from "@rtnads/contracts";
-import type { InMemoryAuditLog } from "./audit.js";
+import type { AuditSink } from "./audit.js";
 
 /**
  * Action Executor (L6). The ONLY component that performs a platform mutation, and
@@ -30,7 +30,7 @@ export interface ExecutorDeps {
   capturePreState(action: Action): Promise<Record<string, unknown>>;
   now: () => string;
   newId: () => string;
-  auditLog?: InMemoryAuditLog;
+  auditLog?: AuditSink;
 }
 
 export class ActionExecutor {
@@ -64,7 +64,7 @@ export class ActionExecutor {
       platform_response,
     });
 
-    this.deps.auditLog?.append({
+    await this.deps.auditLog?.append({
       client_id: action.client_id,
       actor: "system:action-executor",
       actor_kind: "system",
@@ -94,7 +94,7 @@ export class ActionExecutor {
       rollback_ref: record.id,
     });
 
-    this.deps.auditLog?.append({
+    await this.deps.auditLog?.append({
       client_id: action.client_id,
       actor: "system:action-executor",
       actor_kind: "system",

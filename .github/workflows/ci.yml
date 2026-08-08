@@ -90,6 +90,8 @@ jobs:
         env:
           CRM_LOADED: "1"
         run: pnpm --filter @rtnads/ads-analytics-mcp exec vitest run integration
+      - name: Action Executor write-path over Postgres (integration)
+        run: pnpm --filter @rtnads/action-executor exec vitest run pg-writepath
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'
