@@ -60,6 +60,18 @@ export const ClassificationSource = z.enum([
 ]);
 export type ClassificationSource = z.infer<typeof ClassificationSource>;
 
+/**
+ * A proposed/assigned classification for one dimension, before it is persisted as
+ * a versioned row. Produced by the Classifier (docs/07 §Classifier).
+ */
+export const ClassificationAssignment = z.object({
+  dimension_key: z.string().min(1),
+  value: z.string().min(1),
+  source: ClassificationSource,
+  confidence: z.number().min(0).max(1),
+});
+export type ClassificationAssignment = z.infer<typeof ClassificationAssignment>;
+
 /** (entity, dimension) → value, versioned and sourced. */
 export const Classification = z.object({
   id: Uuid,

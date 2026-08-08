@@ -62,6 +62,11 @@ jobs:
           psql "$DATABASE_URL" -tAc \
             "SELECT f.spend_minor FROM facts.entity_daily f JOIN core.ad a ON a.id=f.entity_id AND f.entity_type='ad' WHERE a.external_id='ad_4001';" \
             | grep -qx 4210
+      - name: Classify campaign context vector
+        run: |
+          node scripts/emit-classify.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # 8 current classifications land for the sample campaign
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.classification WHERE client_id='cccccccc-0000-0000-0000-000000000001' AND valid_to IS NULL;" | grep -qx 8
       - name: Analytics engine over the warehouse (integration, pre-CRM)
         run: pnpm --filter @rtnads/analytics-engine test
       - name: CRM read-path (pseudonymized outcomes) + PII-leak scan
