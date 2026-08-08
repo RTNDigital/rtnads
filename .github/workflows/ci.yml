@@ -102,6 +102,8 @@ jobs:
           node scripts/seed-recommendation.mjs cccccccc-0000-0000-0000-000000000001 | grep -q "persisted recommendation"
       - name: BFF Postgres stores + approval flow (integration)
         run: pnpm --filter @rtnads/bff exec vitest run pg.integration
+      - name: Strategy Memory learning suggestions over Postgres (integration)
+        run: pnpm --filter @rtnads/knowledge-service exec vitest run pg.integration
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'

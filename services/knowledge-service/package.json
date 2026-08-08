@@ -1,0 +1,30 @@
+{
+  "name": "@rtnads/knowledge-service",
+  "version": "0.1.0",
+  "description": "Strategy Memory store & API — persists learning suggestions and the human accept/reject gate (docs/08 Flow E)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rtnads/contracts": "workspace:*",
+    "@rtnads/eventbus": "workspace:*",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
