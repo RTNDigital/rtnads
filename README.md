@@ -40,20 +40,26 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
 | CRM connector read-path (L1) | [`services/connectors-crm`](./services/connectors-crm) | Fixture → **pseudonymize (PII dropped)** → validated `NormalizedCrmSync` → loader (`crm.lead/funnel_event/sale`) |
 | Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
+| Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over the engine; capability-gated; **thin adapter, no logic** |
 
-Everything above is verified: `pnpm test` (46 unit/property tests) plus end-to-end
-DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS isolation; the
-Meta read-path into normalized `core`/`facts`; the CRM read-path with a **PII-leak
-scan** (no name/email/phone reaches the analytical store); and the Analytics
-Engine computing correct numbers — including **CRM-driven funnel economics** —
-straight off the loaded warehouse. All loads are idempotent on replay.
+Everything above is verified: `pnpm test` (53 unit/property/round-trip tests) plus
+end-to-end DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS
+isolation; the Meta read-path into normalized `core`/`facts`; the CRM read-path
+with a **PII-leak scan** (no name/email/phone reaches the analytical store); the
+Analytics Engine computing correct numbers — including **CRM-driven funnel
+economics** — straight off the loaded warehouse; and a **full-stack MCP round-trip**
+(client → server → engine → Postgres) returning those numbers. All loads are
+idempotent on replay.
 
 **M0 — Foundations** is complete. **M1 — Analytics & context** is well underway:
 the Analytics Engine deterministically computes totals, derived metrics, the
 Health Tourism funnel, and business-specific unit economics — with real CRM
 outcomes now feeding *cost per qualified lead* (£26.28), *cost per booking*
 (£52.55), *CAC* (£105.10) and *revenue per lead* (£500) for the sample campaign,
-not CPL alone. Numbers are computed here, never by an LLM; PII never leaves L1.
+not CPL alone. The first MCP domain — **Ads Analytics MCP** — now exposes these as
+read-only, capability-gated tools, realizing the core boundary: the AI reaches
+analytics *only* through MCP and never computes a number itself. PII never leaves
+L1.
 
 ---
 

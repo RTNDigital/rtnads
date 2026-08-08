@@ -79,6 +79,10 @@ jobs:
         env:
           CRM_LOADED: "1"
         run: pnpm --filter @rtnads/analytics-engine exec vitest run crm-economics
+      - name: Ads Analytics MCP over Postgres (full-stack integration)
+        env:
+          CRM_LOADED: "1"
+        run: pnpm --filter @rtnads/ads-analytics-mcp exec vitest run integration
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'
