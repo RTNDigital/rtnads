@@ -45,6 +45,8 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Deterministic benchmarking (L3) | [`services/benchmark-engine`](./services/benchmark-engine) | influence-weighted cohorts, weighted benchmarks, robust anomaly detection; **no LLM** |
 | Context classifier (L2/L3) | [`services/classifier`](./services/classifier) | rule + ingested context-vector assignment (sourced, confidence-scored); idempotent loader |
 | Decision Engine (L3) | [`services/decision-engine`](./services/decision-engine) | benchmark + anomaly + rules → candidate recommendation **drafts** with deterministic confidence/risk; **no LLM, no narrative** |
+| Model-agnostic LLM boundary | [`providers/llm-core`](./providers/llm-core) | vendor-neutral provider interface (ADR-0003) + a deterministic scripted provider for tests |
+| AI Orchestrator (L5) | [`services/orchestrator`](./services/orchestrator) | authors the recommendation narrative over grounded evidence; **numeric-authorship guard**; records provenance; **computes nothing** |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
@@ -91,6 +93,16 @@ causation. When the cohort is insufficient it recommends nothing (observe). The
 drafts deliberately omit `reasoning` and `model_provenance` — those are added
 later by the AI Orchestrator (L5); the numbers are all computed here, never by an
 LLM.
+
+The **AI Orchestrator** (L5) closes the loop's reasoning step: behind a
+model-agnostic provider interface, it authors the recommendation's rationale over
+grounded evidence, records provider provenance, and assembles the full
+`Recommendation`. A **numeric-authorship guard** rejects any narrative that
+introduces a number not present in the deterministic evidence — so the LLM can
+explain, but can never fabricate a figure. The whole path is exercised in CI with
+a scripted provider, so no network or real model is needed. This makes the core
+invariant real end to end: **deterministic services compute every number; the LLM
+only reasons.**
 
 ---
 
