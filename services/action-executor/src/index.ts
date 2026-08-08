@@ -7,3 +7,4 @@
  */
 export * from "./audit.js";
 export * from "./executor.js";
+export * from "./outcome.js";

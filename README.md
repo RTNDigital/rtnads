@@ -128,7 +128,17 @@ schema (migration 0009) persists approvals, actions, immutable records, outcome
 evaluations and the audit chain, with the audit table granted **INSERT + SELECT
 only** (never UPDATE/DELETE) to the app role. This closes the MVP's controlled
 write path: **recommend → approve → policy-gate → execute → immutable record +
-audit**, human-in-the-loop throughout.
+audit**, human-in-the-loop throughout. A deterministic **Outcome Evaluation** then
+compares the metric before vs after the observation window and classifies the
+result, with a **capped, conservative causal confidence** — a single before/after
+can't prove the action caused the change.
+
+The whole loop is stitched together in one deterministic
+[end-to-end test](./tests/e2e/src/full-loop.test.ts): analytics → benchmark →
+decision → orchestrator (scripted LLM) → policy → approval → execution →
+hash-chained audit → outcome, plus the negative path proving a policy-denied
+recommendation never reaches execution. No real LLM and no live platform are
+needed, so it runs in CI.
 
 ---
 
