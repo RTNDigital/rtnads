@@ -11,12 +11,12 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: M0 complete · M1 complete · M2 complete · M3 (recommendations) in progress.**
+> **Status: M0–M3 complete · M4 (approval + controlled actions) in progress.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. Foundations, the analytics stack, MCP, the Benchmark Engine and
-> the Classifier are in — cohort benchmarking runs end-to-end on real warehouse
-> data — and M3 has begun with the deterministic Decision Engine.
-> See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. The read-only intelligence loop (ingest → analytics → benchmark
+> → recommendation → narrative) is in and proven on real data. M4 has begun with
+> the deterministic **Policy Engine** and the **Ads Actions MCP** — the gated
+> write path. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -47,6 +47,8 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Decision Engine (L3) | [`services/decision-engine`](./services/decision-engine) | benchmark + anomaly + rules → candidate recommendation **drafts** with deterministic confidence/risk; **no LLM, no narrative** |
 | Model-agnostic LLM boundary | [`providers/llm-core`](./providers/llm-core) | vendor-neutral provider interface (ADR-0003) + a deterministic scripted provider for tests |
 | AI Orchestrator (L5) | [`services/orchestrator`](./services/orchestrator) | authors the recommendation narrative over grounded evidence; **numeric-authorship guard**; records provenance; **computes nothing** |
+| Policy Engine (L6) | [`services/policy-engine`](./services/policy-engine) | deterministic, **unbypassable, fail-closed** gate → allow / needs_approval / deny with exact violated constraints |
+| Ads Actions MCP (L4) | [`mcp-servers/ads-actions-mcp`](./mcp-servers/ads-actions-mcp) | preview (pure) + gated write **requests**; every write routes through the Policy Engine, **none executes directly** |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
@@ -103,6 +105,18 @@ explain, but can never fabricate a figure. The whole path is exercised in CI wit
 a scripted provider, so no network or real model is needed. This makes the core
 invariant real end to end: **deterministic services compute every number; the LLM
 only reasons.**
+
+**M4 — Approval + controlled actions** has begun with the safety core of the write
+path. The **Policy Engine** is a deterministic, **fail-closed** gate: given a
+proposed change, the entity's context and the client's policy, it returns
+`allow | needs_approval | deny` with the exact violated constraints (budget-delta
+caps, minimum evidence/spend/conversions, cooldowns, maturity floor, automation
+tier, daily-spend limit, active-experiment protection, account restrictions). The
+AI cannot bypass it, and a missing policy denies by default. The **Ads Actions
+MCP** exposes preview (pure) and gated write tools — every write builds a proposed
+change, routes it through the Policy Engine, and returns `rejected_by_policy |
+pending_approval | queued`; it **never executes** a mutation itself. Execution,
+approval records and rollback (the Action Executor) are the next step.
 
 ---
 
