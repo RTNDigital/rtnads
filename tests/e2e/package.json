@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@rtnads/contracts": "workspace:*",
+    "@rtnads/eventbus": "workspace:*",
+    "@rtnads/ingestion-scheduler": "workspace:*",
     "@rtnads/analytics-engine": "workspace:*",
     "@rtnads/benchmark-engine": "workspace:*",
     "@rtnads/decision-engine": "workspace:*",

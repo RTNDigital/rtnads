@@ -8,5 +8,6 @@
 export * from "./audit.js";
 export * from "./executor.js";
 export * from "./outcome.js";
+export * from "./outcome-consumer.js";
 export * from "./pg-audit.js";
 export * from "./pg-control.js";
