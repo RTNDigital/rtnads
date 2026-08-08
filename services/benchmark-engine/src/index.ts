@@ -11,3 +11,4 @@ export * from "./benchmark.js";
 export * from "./anomaly.js";
 export * from "./engine.js";
 export * from "./memory-repo.js";
+export * from "./pg-repo.js";

@@ -67,6 +67,12 @@ jobs:
           node scripts/emit-classify.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
           # 8 current classifications land for the sample campaign
           psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.classification WHERE client_id='cccccccc-0000-0000-0000-000000000001' AND valid_to IS NULL;" | grep -qx 8
+      - name: Load historical campaigns (facts + classifications)
+        run: node scripts/emit-historical.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+      - name: Benchmark Engine cohort over Postgres (integration)
+        env:
+          HIST_LOADED: "1"
+        run: pnpm --filter @rtnads/benchmark-engine exec vitest run pg-repo.integration
       - name: Analytics engine over the warehouse (integration, pre-CRM)
         run: pnpm --filter @rtnads/analytics-engine test
       - name: CRM read-path (pseudonymized outcomes) + PII-leak scan

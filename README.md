@@ -11,11 +11,11 @@ executes approved actions, and learns from their outcomes.
 This is **not** a generic AI advertising assistant. It is an *agency-specific*
 advertising intelligence system.
 
-> **Status: M0 complete · M1 complete · M2 (cohorts & benchmarks) in progress.**
+> **Status: M0 complete · M1 complete · M2 complete.**
 > The architecture specification in [`docs/`](./docs) is complete and remains the
-> source of truth. Foundations, the analytics stack and the first MCP domain are
-> in; M2 has added the deterministic Benchmark Engine and its cohort/anomaly MCP
-> tools. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+> source of truth. Foundations, the analytics stack, the first MCP domain, the
+> Benchmark Engine and the Classifier are in — cohort benchmarking now runs
+> end-to-end on real warehouse data. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
 
 ## Getting started
 
@@ -72,6 +72,13 @@ percentiles + direction-aware assessment), and flags anomalies with a robust
 median/MAD z-score. These surface as three more MCP tools —
 `find_similar_campaigns`, `compare_with_cohort`, `detect_anomalies`. Empty cohorts
 and flat series yield explicit "insufficient evidence", never fabricated numbers.
+
+The **Classifier** assigns each campaign's context vector (rule + ingested,
+sourced and confidence-scored), and a Postgres-backed benchmark repository now
+builds cohorts straight from the warehouse — so the whole M2 loop is proven
+end-to-end on real data: a dissimilar dental/DE campaign is correctly excluded
+from a rhinoplasty/UK cohort, stale campaigns carry less influence than recent
+ones, and the subject is benchmarked against the weighted distribution.
 
 ---
 
