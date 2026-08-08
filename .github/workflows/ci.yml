@@ -92,6 +92,12 @@ jobs:
         run: pnpm --filter @rtnads/ads-analytics-mcp exec vitest run integration
       - name: Action Executor write-path over Postgres (integration)
         run: pnpm --filter @rtnads/action-executor exec vitest run pg-writepath
+      - name: Pipeline — derive & persist a recommendation from the warehouse
+        run: |
+          cd services/bff
+          node scripts/seed-recommendation.mjs cccccccc-0000-0000-0000-000000000001 | grep -q "persisted recommendation"
+      - name: BFF Postgres stores + approval flow (integration)
+        run: pnpm --filter @rtnads/bff exec vitest run pg.integration
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'

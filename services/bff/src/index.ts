@@ -11,6 +11,8 @@ import type { Principal } from "./types.js";
 export * from "./types.js";
 export * from "./router.js";
 export * from "./memory.js";
+export * from "./pg.js";
+export * from "./http.js";
 
 /** Build a principal from a user's roles, resolving the capability set (docs/10). */
 export function makePrincipal(user_id: string, client_id: string, roles: Role[]): Principal {

@@ -167,8 +167,24 @@ approve/execute; the AI principal can never approve). Tenant scope is derived fr
 the session principal's `client_id` and every data access is scoped by it, so a
 resource belonging to another client is simply 404 — cross-tenant existence never
 leaks. It exposes recommendation list/detail, approve/reject, action detail and
-audit-chain endpoints, and holds no business logic. The React operator UI on top
-of it is the next visible layer.
+audit-chain endpoints, and holds no business logic.
+
+**It runs.** The BFF ships a Node HTTP server backed by Postgres stores
+(`PgQueryStore` / `PgControlOps`) and serves a live operator console at `/`. A
+pipeline runner derives a real recommendation from the loaded warehouse
+(analytics → benchmark → decision → orchestrator, offline scripted provider) and
+persists it to `intel.recommendation` (migration 0011); the console lists it,
+shows its evidence and confidence, and **approve** writes an approval + action to
+`control.*` and a hash-chained audit entry — all against real Postgres, tenant-
+scoped. CI proves this: it runs the pipeline and the BFF store/approval-flow
+integration on every push.
+
+```bash
+# with a reachable Postgres already migrated + seeded (see db/ and scripts/)
+export DATABASE_URL=postgres://…/rtnads
+node services/bff/scripts/seed-recommendation.mjs <client-uuid>   # persist a recommendation
+DEMO_CLIENT_ID=<client-uuid> pnpm --filter @rtnads/bff dev        # serve console at :8787
+```
 
 ---
 

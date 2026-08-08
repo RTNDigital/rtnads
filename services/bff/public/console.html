@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RTN Ads Intelligence — Operator Console (live)</title>
+<style>
+  :root {
+    --ground:#f5f7f9; --surface:#fff; --surface-2:#f0f3f6; --ink:#141a21; --muted:#5c6672;
+    --faint:#8a94a0; --hairline:#e3e8ee; --hairline-2:#d6dce4; --accent:#0d7d88; --accent-ink:#085b63;
+    --accent-wash:#e4f2f3; --good:#1c8a4e; --good-wash:#e3f3ea; --warn:#a86910; --warn-wash:#f6ecd9;
+    --crit:#bb392f; --crit-wash:#f7e5e3;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace; --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --ground:#0d1116; --surface:#151b22; --surface-2:#1b222b; --ink:#e7ecf2; --muted:#9aa4b0;
+    --faint:#6c7682; --hairline:#232b35; --hairline-2:#2e3742; --accent:#3bb9c2; --accent-ink:#6fd2d9;
+    --accent-wash:#113037; --good:#46b877; --good-wash:#10281c; --warn:#d09a3f; --warn-wash:#2b2313;
+    --crit:#e0685c; --crit-wash:#2c1917;
+  } }
+  * { box-sizing:border-box; } html,body { height:100%; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.5; }
+  .tnum { font-variant-numeric:tabular-nums; } .mono { font-family:var(--mono); }
+  header { display:flex; align-items:center; gap:12px; padding:13px 20px; border-bottom:1px solid var(--hairline); background:var(--surface); }
+  header .mark { font-weight:650; letter-spacing:-.01em; } header .sub { color:var(--faint); font-size:12px; }
+  header .spacer { flex:1; } header .who { font-size:12px; color:var(--muted); }
+  header .chip { padding:3px 9px; border:1px solid var(--hairline-2); border-radius:999px; background:var(--surface-2); font-weight:550; }
+  .work { display:grid; grid-template-columns:340px 1fr; min-height:calc(100% - 52px); }
+  @media (max-width:840px){ .work{ grid-template-columns:1fr; } }
+  .queue { border-right:1px solid var(--hairline); background:var(--surface); }
+  .qh { padding:14px 18px 6px; font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:var(--faint); font-weight:650; }
+  .qlist { list-style:none; margin:0; padding:6px 10px 20px; }
+  .qcard { width:100%; text-align:left; cursor:pointer; background:var(--surface); border:1px solid var(--hairline);
+    border-radius:10px; padding:12px 13px; margin-bottom:8px; display:flex; flex-direction:column; gap:7px; font:inherit; color:inherit; }
+  .qcard.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .qcard:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .qcard .ent { font-weight:600; }
+  .row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .row.sb { justify-content:space-between; }
+  .pill { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:2.5px 8px; border-radius:999px; }
+  .pill.dot::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.warn{ color:var(--warn); background:var(--warn-wash);} .pill.good{ color:var(--good); background:var(--good-wash);}
+  .pill.crit{ color:var(--crit); background:var(--crit-wash);} .pill.neut{ color:var(--muted); background:var(--surface-2);}
+  .tag { font-size:11px; color:var(--muted); background:var(--surface-2); border:1px solid var(--hairline); border-radius:6px; padding:1.5px 7px; font-weight:550; }
+  .meta { color:var(--muted); font-size:12px; }
+  main { padding:22px 26px 40px; max-width:900px; }
+  h1 { margin:0; font-size:20px; letter-spacing:-.02em; }
+  .kicker { font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--accent-ink); font-weight:650; }
+  .sub { color:var(--muted); font-size:13px; margin-top:3px; }
+  .band { display:flex; flex-wrap:wrap; gap:8px 22px; margin:14px 0; }
+  .stat .k { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); font-weight:600; }
+  .stat .v { font-size:16px; font-weight:640; }
+  .panel { background:var(--surface); border:1px solid var(--hairline); border-radius:10px; padding:15px 16px; margin-top:14px; }
+  .panel h3 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); font-weight:650; }
+  .reason { font-size:14.5px; line-height:1.62; }
+  .causation { margin-top:10px; padding:9px 12px; border-left:3px solid var(--warn); background:var(--warn-wash); border-radius:0 8px 8px 0; font-size:12.5px; }
+  table.kv { width:100%; border-collapse:collapse; } table.kv td { padding:6px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
+  table.kv tr:last-child td { border-bottom:0; } table.kv td.k { color:var(--muted); } table.kv td.v { text-align:right; font-weight:600; }
+  .actions { display:flex; gap:10px; align-items:center; margin-top:18px; flex-wrap:wrap; }
+  button.btn { font:inherit; font-weight:600; font-size:13.5px; cursor:pointer; border-radius:8px; padding:9px 16px; border:1px solid transparent; }
+  .btn.approve { background:var(--accent); color:#fff; } .btn.reject { background:var(--surface); color:var(--crit); border-color:var(--hairline-2); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; } .note { color:var(--faint); font-size:12px; }
+  .audit { list-style:none; margin:0; padding:0; } .audit li { display:grid; grid-template-columns:26px 1fr auto; gap:10px; padding:7px 0; border-bottom:1px solid var(--hairline); font-size:12.5px; }
+  .audit li:last-child { border-bottom:0; } .audit .seq { color:var(--faint); font-size:11px; } .audit .who { color:var(--muted); }
+  .foot { color:var(--faint); font-size:11.5px; margin-top:22px; padding-top:12px; border-top:1px solid var(--hairline); }
+  .empty { color:var(--muted); padding:40px 0; text-align:center; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="mark">RTN Ads Intelligence</span><span class="sub">Operator Console · live</span>
+    <span class="spacer"></span>
+    <span class="who">Signed in as <span class="chip">Optimizer</span></span>
+  </header>
+  <div class="work">
+    <nav class="queue"><div class="qh">Review queue</div><ul class="qlist" id="qlist"></ul></nav>
+    <main id="detail"><div class="empty">Loading recommendations…</div></main>
+  </div>
+<script type="module">
+const $ = (s,r=document)=>r.querySelector(s);
+const pct = v => Math.round((v||0)*100)+"%";
+let recs = [], selected = null;
+
+async function api(path, opts) {
+  const r = await fetch(path, { headers:{'content-type':'application/json'}, ...opts });
+  return { status:r.status, body: await r.json().catch(()=>null) };
+}
+function statusPill(s){ return s==="approved"?'<span class="pill good dot">Approved</span>':s==="rejected"?'<span class="pill crit dot">Rejected</span>':'<span class="pill warn dot">Pending review</span>'; }
+function assessPill(a){ return a==="outperforming"?'<span class="pill good">Outperforming cohort</span>':a==="underperforming"?'<span class="pill crit">Underperforming cohort</span>':'<span class="pill neut">Within expected</span>'; }
+function riskPill(r){ const c=r==="high"?"crit":r==="low"?"good":"warn"; return `<span class="pill ${c}">${r} risk</span>`; }
+
+async function load() {
+  const res = await api("/v1/recommendations");
+  recs = res.body || [];
+  renderQueue();
+  if (recs.length) { selected = selected && recs.find(r=>r.id===selected) ? selected : recs[0].id; renderDetail(); }
+  else $("#detail").innerHTML = '<div class="empty">No recommendations yet. Run the pipeline to generate one.</div>';
+}
+function renderQueue() {
+  const ul = $("#qlist"); ul.innerHTML = "";
+  for (const r of recs) {
+    const b = document.createElement("button");
+    b.className = "qcard" + (r.id===selected?" sel":"");
+    b.innerHTML = `<div class="row sb"><span class="ent">${r.entity.type} · ${r.entity.id.slice(0,8)}</span>${statusPill(r.status)}</div>
+      <div class="row"><span class="tag">${r.recommendation_type}</span><span class="meta tnum">conf ${pct(r.confidence_score)}</span><span class="meta">·</span>${riskPill(r.risk_level)}</div>`;
+    b.onclick = () => { selected = r.id; renderQueue(); renderDetail(); };
+    ul.appendChild(b);
+  }
+}
+async function renderDetail() {
+  const r = recs.find(x=>x.id===selected); if(!r) return;
+  const audit = (await api(`/v1/recommendations/${r.id}`)).status===200 ? [] : [];
+  const bc = r.benchmark_comparison, eo = r.expected_outcome, cd = r.confidence_detail;
+  $("#detail").innerHTML = `
+    <div class="kicker">${r.recommendation_type}</div>
+    <h1>${r.entity.type} · <span class="mono">${r.entity.id.slice(0,8)}</span></h1>
+    <div class="sub">recommendation ${r.id.slice(0,8)} · evidence ${r.evidence_window.start} → ${r.evidence_window.end}</div>
+    <div class="band">
+      <div class="stat"><div class="k">Confidence</div><div class="v tnum">${pct(r.confidence_score)}</div></div>
+      <div class="stat"><div class="k">Risk</div><div class="v" style="text-transform:capitalize">${r.risk_level}</div></div>
+      <div class="stat"><div class="k">Causal support</div><div class="v" style="text-transform:capitalize">${cd.causal_support}</div></div>
+      <div class="stat"><div class="k">Observation</div><div class="v">${r.recommended_observation_period}</div></div>
+      <div class="stat"><div class="k">Status</div><div class="v">${statusPill(r.status)}</div></div>
+    </div>
+    <div class="panel"><h3>Why this recommendation</h3><div class="reason">${r.reasoning}</div>
+      <div class="causation">${r.causation_note}</div></div>
+    <div class="panel"><h3>Cohort benchmark ${assessPill(bc.assessment)}</h3>
+      <table class="kv tnum"><tr><td class="k">Metric</td><td class="v">${bc.metric}</td></tr>
+      <tr><td class="k">Subject percentile</td><td class="v">${pct(bc.percentile)}</td></tr>
+      <tr><td class="k">Expected effect</td><td class="v">${eo.metric} ${eo.direction} ${Math.round(eo.magnitude_range[0]*100)}–${Math.round(eo.magnitude_range[1]*100)}%</td></tr></table></div>
+    <div class="panel"><h3>Confidence breakdown</h3>
+      <table class="kv tnum"><tr><td class="k">Evidence strength</td><td class="v">${pct(cd.evidence_strength)}</td></tr>
+      <tr><td class="k">Sample adequacy</td><td class="v">${pct(cd.sample_adequacy)}</td></tr>
+      <tr><td class="k">Recency</td><td class="v">${pct(cd.recency)}</td></tr>
+      <tr><td class="k">Causal support</td><td class="v" style="text-transform:capitalize">${cd.causal_support}</td></tr></table></div>
+    <div class="actions" id="actions"></div>
+    <div class="foot">Provenance: ${r.model_provenance.provider} · ${r.model_provenance.model}. Every number was computed deterministically by the backend and read through MCP — the model reasons but never computes a figure.</div>`;
+  renderActions(r);
+}
+function renderActions(r) {
+  const a = $("#actions");
+  if (r.status === "published" || r.status === "draft") {
+    a.innerHTML = `<button class="btn approve" id="approve">Approve action</button>
+      <button class="btn reject" id="reject">Reject</button>
+      <span class="note">Approving records your sign-off; the action then re-enters the policy gate before execution.</span>`;
+    $("#approve").onclick = async () => { await api(`/v1/recommendations/${r.id}/approve`, {method:"POST", body:JSON.stringify({note:"approved from console"})}); await load(); };
+    $("#reject").onclick = async () => { await api(`/v1/recommendations/${r.id}/reject`, {method:"POST", body:JSON.stringify({reason:"rejected from console"})}); await load(); };
+  } else {
+    a.innerHTML = `<span class="note">Decision recorded · ${r.status}.</span>`;
+  }
+}
+load();
+</script>
+</body>
+</html>
