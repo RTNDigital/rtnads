@@ -13,6 +13,8 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
+    "lint:boundaries": "node tools/check-boundaries.mjs",
+    "secret-scan": "node tools/secret-scan.mjs",
     "db:migrate": "node --experimental-strip-types db/migrate.ts",
     "db:seed": "node --experimental-strip-types db/seed.ts"
   },
