@@ -53,6 +53,7 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
 | RTN Knowledge MCP (L4) | [`mcp-servers/rtn-knowledge-mcp`](./mcp-servers/rtn-knowledge-mcp) | Strategy Memory (playbooks, curated benchmarks, per-client policy) as `rtn://` resources + lookup tools |
 | CRM MCP (L4) | [`mcp-servers/crm-mcp`](./mcp-servers/crm-mcp) | read-only, **anonymized** lead-quality / funnel / sales tools — PII is not expressible by the contracts |
+| BFF / ingress | [`services/bff`](./services/bff) | REST router with **RBAC** (roles→capabilities) and **tenancy derived from the session** (never the body); recommendation/approval/action/audit endpoints |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
 end-to-end DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS
@@ -158,6 +159,16 @@ pseudonym, name, email or phone), and **Ads Actions** (gated write requests). Ea
 is a thin, capability-gated adapter over the deterministic backend; a `knowledge`
 schema (migration 0010) persists Strategy Memory with client-scoped policy under
 RLS.
+
+The **BFF** is the ingress the operator UI will consume (docs/06): a REST router
+where every route declares a required **capability** (roles resolve to
+capabilities per docs/10 — a viewer can read but not approve; an optimizer can
+approve/execute; the AI principal can never approve). Tenant scope is derived from
+the session principal's `client_id` and every data access is scoped by it, so a
+resource belonging to another client is simply 404 — cross-tenant existence never
+leaks. It exposes recommendation list/detail, approve/reject, action detail and
+audit-chain endpoints, and holds no business logic. The React operator UI on top
+of it is the next visible layer.
 
 ---
 

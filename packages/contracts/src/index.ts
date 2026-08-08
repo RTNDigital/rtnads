@@ -13,6 +13,7 @@ export * from "./crm.js";
 export * from "./analytics.js";
 export * from "./policy.js";
 export * from "./control.js";
+export * from "./rbac.js";
 export * from "./recommendation.js";
 export * from "./events.js";
 export * as AdsAnalyticsMcp from "./mcp/analytics.js";
