@@ -51,6 +51,8 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Ads Actions MCP (L4) | [`mcp-servers/ads-actions-mcp`](./mcp-servers/ads-actions-mcp) | preview (pure) + gated write **requests**; every write routes through the Policy Engine, **none executes directly** |
 | Action Executor + audit (L6) | [`services/action-executor`](./services/action-executor) | executes only approved+gated actions; **immutable** pre/post records; rollback; append-only **hash-chained audit** (tamper-evident); Postgres persistence for the control plane |
 | Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
+| RTN Knowledge MCP (L4) | [`mcp-servers/rtn-knowledge-mcp`](./mcp-servers/rtn-knowledge-mcp) | Strategy Memory (playbooks, curated benchmarks, per-client policy) as `rtn://` resources + lookup tools |
+| CRM MCP (L4) | [`mcp-servers/crm-mcp`](./mcp-servers/crm-mcp) | read-only, **anonymized** lead-quality / funnel / sales tools — PII is not expressible by the contracts |
 
 Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
 end-to-end DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS
@@ -146,6 +148,16 @@ log is appended in the database (the audit table is INSERT+SELECT-only for the a
 role). A CI integration test persists an approved action, executes it, stores the
 immutable record and verifies the audit chain **in the database** — the write path
 proven on real Postgres end to end.
+
+All **four MCP domains** from the architecture now exist (docs/04): **Ads
+Analytics** (read-only analytics/cohorts/anomalies), **RTN Knowledge** (Strategy
+Memory — playbooks, curated benchmarks and per-client optimization policy as
+`rtn://` resources + lookup tools, with cross-tenant policy access denied), **CRM**
+(anonymized lead-quality / funnel / sales — the contracts cannot express a
+pseudonym, name, email or phone), and **Ads Actions** (gated write requests). Each
+is a thin, capability-gated adapter over the deterministic backend; a `knowledge`
+schema (migration 0010) persists Strategy Memory with client-scoped policy under
+RLS.
 
 ---
 
