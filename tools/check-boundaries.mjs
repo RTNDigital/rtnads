@@ -13,6 +13,8 @@ const ROOT = new URL("..", import.meta.url).pathname;
 const RULES = [
   { pkg: "packages/contracts", forbid: [{ re: /@rtnads\//, why: "contracts is a leaf — it must not depend on any workspace package" }] },
   { pkg: "packages/domain", forbid: [{ re: /@rtnads\/(?!contracts)/, why: "domain may only depend on contracts" }] },
+  { pkg: "packages/eventbus", forbid: [{ re: /@rtnads\/(?!contracts)/, why: "the event bus is leaf infrastructure — it may only depend on contracts" }] },
+  { pkg: "services/ingestion-scheduler", forbid: [{ re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|orchestrator|policy-engine|action-executor|connectors-|bff)|-mcp/, why: "the ingestion scheduler is L1 — it drives sync cadence via the event bus and must not import upward" }] },
   { pkg: "services/orchestrator", forbid: [
     { re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|policy-engine|action-executor|connectors-|bff)/, why: "the orchestrator reaches backends ONLY through MCP + llm-core, never directly (docs/01 §6)" },
     { re: /(^|["'/])pg($|["'])/, why: "the orchestrator has no database access" },
