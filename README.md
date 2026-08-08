@@ -38,21 +38,22 @@ pnpm db:seed        # load taxonomy / dimension / funnel reference data
 | Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
 | Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
 | Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
+| CRM connector read-path (L1) | [`services/connectors-crm`](./services/connectors-crm) | Fixture → **pseudonymize (PII dropped)** → validated `NormalizedCrmSync` → loader (`crm.lead/funnel_event/sale`) |
 | Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
 
-Everything above is verified: `pnpm test` (40 unit/property tests) plus end-to-end
+Everything above is verified: `pnpm test` (46 unit/property tests) plus end-to-end
 DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS isolation; the
-Meta read-path from fixtures into normalized `core`/`facts` (idempotent on
-replay); and the Analytics Engine computing correct numbers straight off the
-loaded warehouse.
+Meta read-path into normalized `core`/`facts`; the CRM read-path with a **PII-leak
+scan** (no name/email/phone reaches the analytical store); and the Analytics
+Engine computing correct numbers — including **CRM-driven funnel economics** —
+straight off the loaded warehouse. All loads are idempotent on replay.
 
-**M0 — Foundations** is complete: a real account's data path flows `raw fixture →
-normalized facts`, with taxonomy/dimensions extensible as data and tenancy
-enforced at the database. **M1 — Analytics & context** has begun: the Analytics
-Engine deterministically computes totals, derived metrics, the Health Tourism
-funnel, and business-specific unit economics (cost per qualified lead, cost per
-booking, CAC, revenue per lead — not CPL alone). Numbers are computed here, never
-by an LLM.
+**M0 — Foundations** is complete. **M1 — Analytics & context** is well underway:
+the Analytics Engine deterministically computes totals, derived metrics, the
+Health Tourism funnel, and business-specific unit economics — with real CRM
+outcomes now feeding *cost per qualified lead* (£26.28), *cost per booking*
+(£52.55), *CAC* (£105.10) and *revenue per lead* (£500) for the sample campaign,
+not CPL alone. Numbers are computed here, never by an LLM; PII never leaves L1.
 
 ---
 

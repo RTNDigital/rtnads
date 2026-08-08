@@ -9,6 +9,7 @@
 export * from "./common.js";
 export * from "./taxonomy.js";
 export * from "./warehouse.js";
+export * from "./crm.js";
 export * from "./analytics.js";
 export * from "./recommendation.js";
 export * from "./events.js";

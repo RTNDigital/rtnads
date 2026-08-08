@@ -66,8 +66,19 @@ jobs:
           psql "$DATABASE_URL" -tAc \
             "SELECT f.spend_minor FROM facts.entity_daily f JOIN core.ad a ON a.id=f.entity_id AND f.entity_type='ad' WHERE a.external_id='ad_4001';" \
             | grep -qx 4210
-      - name: Analytics engine over the warehouse (integration)
+      - name: Analytics engine over the warehouse (integration, pre-CRM)
         run: pnpm --filter @rtnads/analytics-engine test
+      - name: CRM read-path (pseudonymized outcomes) + PII-leak scan
+        run: |
+          node scripts/emit-crm.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # funnel events landed (10+8+4+2+2+1 = 27)
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.funnel_event WHERE client_id='cccccccc-0000-0000-0000-000000000001';" | grep -qx 27
+          # no raw PII may have leaked into the analytical store
+          test "$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.lead WHERE attributes::text ILIKE '%@example.com%' OR pseudonym_id ILIKE '%patient%';")" = "0"
+      - name: CRM funnel economics (integration, post-CRM)
+        env:
+          CRM_LOADED: "1"
+        run: pnpm --filter @rtnads/analytics-engine exec vitest run crm-economics
       - name: RLS isolation (fail-closed) test
         run: |
           psql "$DATABASE_URL" <<'SQL'
