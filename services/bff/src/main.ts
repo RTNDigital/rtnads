@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import pg from "pg";
-import { PgQueryStore, PgControlOps } from "./pg.js";
+import { PgQueryStore, PgControlOps, PgBffLearningStore } from "./pg.js";
 import { startBffServer } from "./http.js";
 import { makePrincipal } from "./index.js";
 
@@ -24,6 +24,7 @@ const pool = new pg.Pool({ connectionString: url });
 const deps = {
   query: new PgQueryStore(pool),
   control: new PgControlOps(pool, () => new Date().toISOString(), () => randomUUID()),
+  learning: new PgBffLearningStore(pool, () => new Date().toISOString(), () => randomUUID()),
 };
 const principal = makePrincipal("user:operator", clientId, ["optimizer"]);
 

@@ -6,6 +6,7 @@ import type {
   ActionRecord,
   Approval,
   AuditEntry,
+  LearningSuggestion,
 } from "@rtnads/contracts";
 
 /**
@@ -38,9 +39,18 @@ export interface ControlOps {
   reject(clientId: string, recommendationId: string, principal: Principal, reason: string): Promise<{ approval: Approval }>;
 }
 
+export type LearningDecision = "accepted" | "rejected";
+
+/** Strategy Memory learning suggestions — read + the human accept/reject gate (docs/08 Flow E). */
+export interface LearningStore {
+  listSuggestions(clientId: string, status?: string): Promise<LearningSuggestion[]>;
+  decide(clientId: string, id: string, decision: LearningDecision, principal: Principal, note?: string): Promise<LearningSuggestion>;
+}
+
 export interface BffDeps {
   query: QueryStore;
   control: ControlOps;
+  learning: LearningStore;
 }
 
 export interface HttpRequest {

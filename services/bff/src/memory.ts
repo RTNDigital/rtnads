@@ -4,8 +4,9 @@ import type {
   ActionRecord,
   Approval,
   AuditEntry,
+  LearningSuggestion,
 } from "@rtnads/contracts";
-import type { QueryStore, ControlOps, Principal, RecommendationFilter } from "./types.js";
+import type { QueryStore, ControlOps, LearningStore, LearningDecision, Principal, RecommendationFilter } from "./types.js";
 
 /**
  * In-memory Query + Control stores for tests. All reads are scoped by client_id;
@@ -80,5 +81,29 @@ export class InMemoryControlOps implements ControlOps {
     };
     this.approvals.push(approval);
     return { approval };
+  }
+}
+
+/** In-memory learning-suggestion store for tests. Seeded per client; decide mutates. */
+export class InMemoryLearningStore implements LearningStore {
+  constructor(
+    private readonly seed: Record<string, LearningSuggestion[]> = {},
+    private readonly now: () => string = () => "2026-08-22T00:00:00.000Z",
+  ) {}
+
+  async listSuggestions(clientId: string, status = "pending"): Promise<LearningSuggestion[]> {
+    const all = this.seed[clientId] ?? [];
+    return status ? all.filter((s) => s.status === status) : all;
+  }
+
+  async decide(clientId: string, id: string, decision: LearningDecision, principal: Principal, note?: string): Promise<LearningSuggestion> {
+    const s = (this.seed[clientId] ?? []).find((x) => x.id === id);
+    if (!s) throw new Error("learning suggestion not found");
+    if (s.status !== "pending") throw new Error(`cannot decide a ${s.status} suggestion`);
+    s.status = decision;
+    s.decided_by = principal.user_id;
+    s.decided_at = this.now();
+    if (note !== undefined) s.note = note;
+    return s;
   }
 }

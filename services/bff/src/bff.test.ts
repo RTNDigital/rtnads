@@ -1,12 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { Recommendation } from "@rtnads/contracts";
+import { Recommendation, LearningSuggestion } from "@rtnads/contracts";
 import { BffRouter } from "./router.js";
-import { InMemoryQueryStore, InMemoryControlOps } from "./memory.js";
+import { InMemoryQueryStore, InMemoryControlOps, InMemoryLearningStore } from "./memory.js";
 import { makePrincipal } from "./index.js";
 
 const CLIENT_A = "aaaaaaaa-0000-0000-0000-0000000000a1";
 const CLIENT_B = "bbbbbbbb-0000-0000-0000-0000000000b1";
 const REC_ID = "22222222-2222-2222-2222-222222222222";
+const SUG_ID = "66666666-6666-6666-6666-666666666666";
+
+function suggestion(clientId: string, id: string, status = "pending"): LearningSuggestion {
+  return LearningSuggestion.parse({
+    id,
+    client_id: clientId,
+    created_at: "2026-08-22T00:00:00.000Z",
+    status,
+    kind: "calibration",
+    snapshot: { sample_size: 3, result_counts: { improved: 2, neutral: 1, regressed: 0, inconclusive: 0 }, mean_causal_confidence: 0.3 },
+    source_event_id: null,
+    note: null,
+    decided_by: null,
+    decided_at: null,
+  });
+}
 
 function recommendation(clientId: string, id: string, status: string): Recommendation {
   return Recommendation.parse({
@@ -39,7 +55,8 @@ function makeRouter() {
     () => "2026-08-08T12:00:00.000Z",
     () => `55555555-5555-5555-5555-55555555555${n++}`,
   );
-  return { router: new BffRouter({ query, control }), control };
+  const learning = new InMemoryLearningStore({ [CLIENT_A]: [suggestion(CLIENT_A, SUG_ID)] });
+  return { router: new BffRouter({ query, control, learning }), control, learning };
 }
 
 const viewer = makePrincipal("u1", CLIENT_A, ["viewer"]);
@@ -105,5 +122,45 @@ describe("BFF routing + authorization", () => {
     // optimizer has audit.read → 200 (empty list)
     const ok = await router.dispatch(optimizer, { method: "GET", path: `/v1/actions/${REC_ID}/audit` });
     expect(ok.status).toBe(200);
+  });
+});
+
+describe("BFF learning suggestions (Flow E human gate)", () => {
+  it("lists pending suggestions for a reader, scoped to the tenant", async () => {
+    const { router } = makeRouter();
+    const res = await router.dispatch(viewer, { method: "GET", path: "/v1/learning" });
+    expect(res.status).toBe(200);
+    expect((res.body as unknown[]).length).toBe(1);
+    // another tenant sees nothing
+    const other = await router.dispatch(clientB, { method: "GET", path: "/v1/learning" });
+    expect(other.status).toBe(200);
+    expect((other.body as unknown[]).length).toBe(0);
+  });
+
+  it("forbids a viewer from deciding (403)", async () => {
+    const { router } = makeRouter();
+    const res = await router.dispatch(viewer, { method: "POST", path: `/v1/learning/${SUG_ID}/decide`, body: { decision: "accepted" } });
+    expect(res.status).toBe(403);
+  });
+
+  it("lets an optimizer accept a suggestion", async () => {
+    const { router, learning } = makeRouter();
+    const res = await router.dispatch(optimizer, { method: "POST", path: `/v1/learning/${SUG_ID}/decide`, body: { decision: "accepted", note: "ship it" } });
+    expect(res.status).toBe(200);
+    expect((res.body as { status: string }).status).toBe("accepted");
+    // it left the pending queue
+    expect(await learning.listSuggestions(CLIENT_A, "pending")).toHaveLength(0);
+  });
+
+  it("rejects an invalid decision (400)", async () => {
+    const { router } = makeRouter();
+    const res = await router.dispatch(optimizer, { method: "POST", path: `/v1/learning/${SUG_ID}/decide`, body: { decision: "maybe" } });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 for an unknown suggestion", async () => {
+    const { router } = makeRouter();
+    const res = await router.dispatch(optimizer, { method: "POST", path: "/v1/learning/99999999-9999-9999-9999-999999999999/decide", body: { decision: "rejected" } });
+    expect(res.status).toBe(404);
   });
 });

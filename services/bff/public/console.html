@@ -73,7 +73,10 @@
     <span class="who">Signed in as <span class="chip">Optimizer</span></span>
   </header>
   <div class="work">
-    <nav class="queue"><div class="qh">Review queue</div><ul class="qlist" id="qlist"></ul></nav>
+    <nav class="queue">
+      <div class="qh">Review queue</div><ul class="qlist" id="qlist"></ul>
+      <div class="qh" style="margin-top:4px">Strategy learning</div><ul class="qlist" id="llist"></ul>
+    </nav>
     <main id="detail"><div class="empty">Loading recommendations…</div></main>
   </div>
 <script type="module">
@@ -89,7 +92,7 @@ function statusPill(s){ return s==="approved"?'<span class="pill good dot">Appro
 function assessPill(a){ return a==="outperforming"?'<span class="pill good">Outperforming cohort</span>':a==="underperforming"?'<span class="pill crit">Underperforming cohort</span>':'<span class="pill neut">Within expected</span>'; }
 function riskPill(r){ const c=r==="high"?"crit":r==="low"?"good":"warn"; return `<span class="pill ${c}">${r} risk</span>`; }
 
-async function load() {
+async function loadRecommendations() {
   const res = await api("/v1/recommendations");
   recs = res.body || [];
   renderQueue();
@@ -149,6 +152,38 @@ function renderActions(r) {
     a.innerHTML = `<span class="note">Decision recorded · ${r.status}.</span>`;
   }
 }
+
+// ── Strategy learning: pending calibration suggestions (Flow E human gate) ──────
+async function loadLearning() {
+  const res = await api("/v1/learning?status=pending");
+  const items = res.body || [];
+  const ul = document.querySelector("#llist");
+  ul.innerHTML = "";
+  if (!items.length) { ul.innerHTML = '<li class="meta" style="padding:4px 3px">No pending suggestions.</li>'; return; }
+  for (const s of items) {
+    const c = s.snapshot?.result_counts || {};
+    const conf = s.snapshot?.mean_causal_confidence;
+    const li = document.createElement("li");
+    li.className = "qcard";
+    li.innerHTML = `<div class="row sb"><span class="ent" style="text-transform:capitalize">${s.kind}</span>
+        <span class="pill warn dot">Pending</span></div>
+      <div class="row"><span class="tag">n=${s.snapshot?.sample_size ?? "?"}</span>
+        <span class="meta tnum">↑${c.improved||0} ·${c.neutral||0} ↓${c.regressed||0}</span>
+        <span class="meta">·</span><span class="meta tnum">causal ${conf!=null?Math.round(conf*100)+"%":"—"}</span></div>
+      <div class="actions" style="margin-top:6px">
+        <button class="btn approve" data-a="accepted" style="padding:6px 12px">Accept</button>
+        <button class="btn reject" data-a="rejected" style="padding:6px 12px">Reject</button></div>`;
+    for (const btn of li.querySelectorAll("button")) {
+      btn.onclick = async () => {
+        await api(`/v1/learning/${s.id}/decide`, { method:"POST", body: JSON.stringify({ decision: btn.dataset.a, note: btn.dataset.a+" from console" }) });
+        await loadLearning();
+      };
+    }
+    ul.appendChild(li);
+  }
+}
+
+async function load() { await Promise.all([loadRecommendations(), loadLearning()]); }
 load();
 </script>
 </body>

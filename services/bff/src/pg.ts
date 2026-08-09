@@ -5,9 +5,11 @@ import {
   type ActionRecord,
   type AuditEntry,
   type ActionType,
+  type LearningSuggestion,
 } from "@rtnads/contracts";
 import { PgAuditLog } from "@rtnads/action-executor";
-import type { QueryStore, ControlOps, Principal, RecommendationFilter } from "./types.js";
+import { PgLearningSuggestionStore } from "@rtnads/knowledge-service";
+import type { QueryStore, ControlOps, LearningStore, LearningDecision, Principal, RecommendationFilter } from "./types.js";
 
 /**
  * Postgres-backed Query + Control stores for the BFF (docs/06). Reads persisted
@@ -164,5 +166,38 @@ export class PgControlOps implements ControlOps {
     } finally {
       c.release();
     }
+  }
+}
+
+/**
+ * Postgres-backed learning-suggestion store for the BFF. Reads/decides via the
+ * knowledge-service store (RLS-scoped) and appends an audit entry on every human
+ * decision, so accepting/rejecting a calibration is as accountable as approving an
+ * action (docs/08 Flow E, docs/09 §8).
+ */
+export class PgBffLearningStore implements LearningStore {
+  private readonly store: PgLearningSuggestionStore;
+  private readonly audit: PgAuditLog;
+  constructor(private readonly pool: Pool, private readonly now: () => string, newId: () => string) {
+    this.store = new PgLearningSuggestionStore(pool, now, newId);
+    this.audit = new PgAuditLog(pool);
+  }
+
+  listSuggestions(clientId: string, status?: string): Promise<LearningSuggestion[]> {
+    return this.store.list(clientId, status as Parameters<PgLearningSuggestionStore["list"]>[1]);
+  }
+
+  async decide(clientId: string, id: string, decision: LearningDecision, principal: Principal, note?: string): Promise<LearningSuggestion> {
+    const suggestion = await this.store.decide(clientId, id, decision, principal.user_id, note);
+    await this.audit.append({
+      client_id: clientId,
+      actor: principal.user_id,
+      actor_kind: "user",
+      action: decision === "accepted" ? "learning.accepted" : "learning.rejected",
+      subject_ref: `learning_suggestion:${id}`,
+      payload: { note: note ?? null },
+      created_at: this.now(),
+    });
+    return suggestion;
   }
 }

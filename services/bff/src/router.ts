@@ -71,6 +71,19 @@ const ROUTES: Route[] = [
   route("GET", "/v1/actions/:id/audit", "audit.read", async ({ deps, principal, params }) =>
     deps.query.getAudit(principal.client_id, `action:${params.id!}`),
   ),
+  route("GET", "/v1/learning", "learning.read", async ({ deps, principal, query }) =>
+    deps.learning.listSuggestions(principal.client_id, query.get("status") ?? "pending"),
+  ),
+  route("POST", "/v1/learning/:id/decide", "learning.decide", async ({ deps, principal, params, body }) => {
+    const b = body as { decision?: string; note?: string } | undefined;
+    if (b?.decision !== "accepted" && b?.decision !== "rejected") throw new BadRequest();
+    try {
+      return await deps.learning.decide(principal.client_id, params.id!, b.decision, principal, b.note);
+    } catch {
+      // missing or already-decided suggestion → 404, without leaking cross-tenant existence
+      throw new NotFound();
+    }
+  }),
 ];
 
 export class BffRouter {

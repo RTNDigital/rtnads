@@ -26,6 +26,8 @@ export const Capability = z.enum([
   "recommendation.reject",
   "action.execute",
   "ads.action.request",
+  "learning.read",
+  "learning.decide",
   "policy.read",
   "policy.configure",
   "audit.read",
@@ -37,19 +39,21 @@ const ALL: Capability[] = Capability.options;
 
 /** Role → granted capabilities (docs/10 §1). */
 export const ROLE_CAPABILITIES: Record<Role, Capability[]> = {
-  viewer: ["ads.read", "crm.read", "knowledge.read", "recommendation.read"],
-  analyst: ["ads.read", "crm.read", "knowledge.read", "recommendation.read", "audit.read"],
+  viewer: ["ads.read", "crm.read", "knowledge.read", "recommendation.read", "learning.read"],
+  analyst: ["ads.read", "crm.read", "knowledge.read", "recommendation.read", "learning.read", "audit.read"],
   optimizer: [
     "ads.read", "crm.read", "knowledge.read", "recommendation.read",
-    "recommendation.approve", "recommendation.reject", "action.execute", "audit.read",
+    "recommendation.approve", "recommendation.reject", "action.execute",
+    "learning.read", "learning.decide", "audit.read",
   ],
   client_admin: [
     "ads.read", "crm.read", "knowledge.read", "recommendation.read",
     "recommendation.approve", "recommendation.reject", "action.execute",
+    "learning.read", "learning.decide",
     "policy.read", "policy.configure", "audit.read",
   ],
   platform_admin: ALL,
-  auditor: ["recommendation.read", "audit.read", "pii.reidentify"],
+  auditor: ["recommendation.read", "learning.read", "audit.read", "pii.reidentify"],
   // The AI can read + draft/request, but never approve, execute, or configure.
   ai_orchestrator: ["ads.read", "crm.read", "knowledge.read", "ads.action.request"],
 };
