@@ -14,10 +14,11 @@ const RULES = [
   { pkg: "packages/contracts", forbid: [{ re: /@rtnads\//, why: "contracts is a leaf — it must not depend on any workspace package" }] },
   { pkg: "packages/domain", forbid: [{ re: /@rtnads\/(?!contracts)/, why: "domain may only depend on contracts" }] },
   { pkg: "packages/eventbus", forbid: [{ re: /@rtnads\/(?!contracts)/, why: "the event bus is leaf infrastructure — it may only depend on contracts" }] },
+  { pkg: "providers/llm-core", forbid: [{ re: /@rtnads\//, why: "llm-core is the model-agnostic interface — it must not depend on any concrete provider or workspace package (ADR-0003)" }] },
   { pkg: "services/ingestion-scheduler", forbid: [{ re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|orchestrator|policy-engine|action-executor|connectors-|bff)|-mcp/, why: "the ingestion scheduler is L1 — it drives sync cadence via the event bus and must not import upward" }] },
   { pkg: "services/knowledge-service", forbid: [{ re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|orchestrator|policy-engine|action-executor|connectors-|bff)|-mcp/, why: "the knowledge service is a store/API for Strategy Memory — no upward or cross-service imports" }] },
   { pkg: "services/orchestrator", forbid: [
-    { re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|policy-engine|action-executor|connectors-|bff)/, why: "the orchestrator reaches backends ONLY through MCP + llm-core, never directly (docs/01 §6)" },
+    { re: /@rtnads\/(analytics-engine|benchmark-engine|decision-engine|policy-engine|action-executor|connectors-|bff|llm-claude)/, why: "the orchestrator reaches backends ONLY through MCP + llm-core, never directly, and stays model-agnostic — no concrete LLM provider (docs/01 §6, ADR-0003)" },
     { re: /(^|["'/])pg($|["'])/, why: "the orchestrator has no database access" },
   ] },
   { pkg: "services/analytics-engine", forbid: [{ re: /@rtnads\/(orchestrator|bff)|-mcp/, why: "L3 engines must not import upward (orchestrator/mcp/bff)" }] },
