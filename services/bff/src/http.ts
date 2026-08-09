@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { BffDeps, Principal } from "./types.js";
 import { BffRouter } from "./router.js";
+import { AuthError } from "./auth.js";
 
 /**
- * Thin Node HTTP adapter for the BFF. Authentication is out of scope for the demo
- * runner: a principal resolver supplies the session identity (in production this
- * is an OIDC session). The router then enforces RBAC + tenancy. Also serves the
- * static operator console at `/`.
+ * Thin Node HTTP adapter for the BFF. Authentication is pluggable: `authenticate`
+ * turns a request into a Principal (in production a verified OIDC/JWT session — see
+ * auth.ts). A thrown AuthError yields 401; the router then enforces RBAC + tenancy.
+ * Also serves the static operator console at `/`.
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -28,7 +29,8 @@ function readBody(req: IncomingMessage): Promise<unknown> {
 
 export interface HttpServerOptions {
   deps: BffDeps;
-  resolvePrincipal: (req: IncomingMessage) => Principal;
+  /** Resolve the session principal from the request, or throw AuthError → 401. */
+  authenticate: (req: IncomingMessage) => Principal | Promise<Principal>;
   port: number;
 }
 
@@ -48,7 +50,17 @@ export function startBffServer(opts: HttpServerOptions) {
         res.end(JSON.stringify({ error: "not_found" }));
         return;
       }
-      const principal = opts.resolvePrincipal(req);
+      let principal: Principal;
+      try {
+        principal = await opts.authenticate(req);
+      } catch (e) {
+        if (e instanceof AuthError) {
+          res.writeHead(401, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: "unauthorized", message: e.message }));
+          return;
+        }
+        throw e;
+      }
       const body = req.method === "POST" ? await readBody(req) : undefined;
       const result = await router.dispatch(principal, { method: req.method ?? "GET", path: url, body });
       res.writeHead(result.status, { "content-type": "application/json" });
