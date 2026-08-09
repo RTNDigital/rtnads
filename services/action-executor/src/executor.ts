@@ -1,4 +1,4 @@
-import { ActionRecord, type Action } from "@rtnads/contracts";
+import { ActionRecord, type Action, type PlatformWriteConnector } from "@rtnads/contracts";
 import type { AuditSink } from "./audit.js";
 
 /**
@@ -15,14 +15,13 @@ export class ExecutionRefused extends Error {
   }
 }
 
-/** The platform mutation port — the real connector in prod, a mock in tests. */
-export interface PlatformConnector {
-  applyMutation(action: Action): Promise<{
-    platform_response: Record<string, unknown>;
-    post_state: Record<string, unknown>;
-  }>;
-  revert(record: ActionRecord): Promise<{ platform_response: Record<string, unknown> }>;
-}
+/**
+ * The platform mutation port — the real connector in prod (e.g. MetaWriteConnector
+ * in @rtnads/connectors-ads), a mock in tests. The canonical shape is
+ * `PlatformWriteConnector` in @rtnads/contracts; this alias keeps the historical
+ * name at the executor boundary.
+ */
+export type PlatformConnector = PlatformWriteConnector;
 
 export interface ExecutorDeps {
   connector: PlatformConnector;
@@ -80,7 +79,7 @@ export class ActionExecutor {
 
   /** Roll back a prior execution where the platform permits it. */
   async rollback(record: ActionRecord, action: Action): Promise<ActionRecord> {
-    const { platform_response } = await this.deps.connector.revert(record);
+    const { platform_response } = await this.deps.connector.revert(record, action);
 
     const reverted = ActionRecord.parse({
       id: this.deps.newId(),

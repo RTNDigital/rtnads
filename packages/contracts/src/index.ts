@@ -13,6 +13,7 @@ export * from "./crm.js";
 export * from "./analytics.js";
 export * from "./policy.js";
 export * from "./control.js";
+export * from "./writepath.js";
 export * from "./rbac.js";
 export * from "./recommendation.js";
 export * from "./knowledge.js";

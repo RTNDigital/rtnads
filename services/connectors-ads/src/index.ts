@@ -8,5 +8,7 @@ export * from "./types.js";
 export * from "./meta/mapper.js";
 export * from "./meta/connector.js";
 export * from "./meta/http-source.js";
+export * from "./meta/write-source.js";
+export * from "./meta/write-connector.js";
 export * from "./meta/fixtures.js";
 export * from "./loader.js";
