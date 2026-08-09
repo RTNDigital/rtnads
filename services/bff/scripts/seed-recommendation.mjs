@@ -21,6 +21,7 @@ const { BenchmarkEngine, PgBenchmarkRepository } = await import(R("services/benc
 const { DecisionEngine } = await import(R("services/decision-engine/dist/index.js"));
 const { AiOrchestrator, buildEvidenceText } = await import(R("services/orchestrator/dist/index.js"));
 const { ScriptedLlmProvider } = await import(R("providers/llm-core/dist/index.js"));
+const { claudeProviderFromEnv } = await import(R("providers/llm-claude/dist/index.js"));
 
 const clientId = process.argv[2];
 const url = process.env.DATABASE_URL;
@@ -62,13 +63,25 @@ const evidence = {
 const [draft] = new DecisionEngine().generate(evidence);
 if (!draft) { console.error("no candidate recommendation for this subject (within expected)"); process.exit(0); }
 
-// 4. orchestrator narrative (offline scripted provider, digit-free → always grounded).
-const narrative =
+// 4. orchestrator narrative. Provider selection is a CONFIG choice (ADR-0003):
+//    a real ANTHROPIC_API_KEY authors the rationale from the evidence via Claude;
+//    offline we fall back to a deterministic, digit-free scripted narrative (so CI
+//    and the demo stay reproducible). Either way the orchestrator's numeric guard
+//    rejects any ungrounded figure before the recommendation is published.
+const offlineNarrative =
   "This campaign's cost per lead compares favourably against its most similar RTN cohort, " +
   "so the recommended change is supported by cohort evidence. This is correlational evidence, " +
   "not proof that the action will cause the expected change; a short observation window is advised.";
+let provider;
+if (process.env.ANTHROPIC_API_KEY) {
+  provider = claudeProviderFromEnv();
+  console.log(`narrative provider: claude (model=${process.env.LLM_MODEL ?? "default"})`);
+} else {
+  provider = new ScriptedLlmProvider(offlineNarrative, { model: "scripted-1", version: "0.0.0" });
+  console.log("narrative provider: scripted (offline — set ANTHROPIC_API_KEY to author via Claude)");
+}
 const orch = new AiOrchestrator({
-  provider: new ScriptedLlmProvider(narrative, { model: "scripted-1", version: "0.0.0" }),
+  provider,
   now: () => new Date().toISOString(),
   newId: () => randomUUID(),
 });
