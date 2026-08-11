@@ -72,20 +72,37 @@ const offlineNarrative =
   "This campaign's cost per lead compares favourably against its most similar RTN cohort, " +
   "so the recommended change is supported by cohort evidence. This is correlational evidence, " +
   "not proof that the action will cause the expected change; a short observation window is advised.";
-let provider;
-if (process.env.ANTHROPIC_API_KEY) {
-  provider = claudeProviderFromEnv();
-  console.log(`narrative provider: claude (model=${process.env.LLM_MODEL ?? "default"})`);
+const now = () => new Date().toISOString();
+const newId = () => randomUUID();
+const scriptedProvider = () =>
+  new ScriptedLlmProvider(offlineNarrative, { model: "scripted-1", version: "0.0.0" });
+const authorInput = { clientId, draft, evidenceText: buildEvidenceText(draft) };
+
+// A trimmed key means Claude is genuinely configured (a blank/whitespace value is
+// treated as unset rather than making a doomed 401 call).
+const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+
+let rec;
+if (apiKey) {
+  console.log("narrative provider: claude");
+  const orch = new AiOrchestrator({ provider: claudeProviderFromEnv(), now, newId });
+  try {
+    rec = await orch.authorRecommendation(authorInput);
+  } catch (err) {
+    // Claude is an enhancement, not a hard dependency: a refusal, a transformed
+    // number that trips the numeric guard, or a transport error must not leave the
+    // console empty. Fall back to the deterministic scripted narrative, loudly, so
+    // the operator can see the key/model needs attention.
+    const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.warn(`WARN claude narrative failed (${reason}); falling back to scripted narrative`);
+    const fallback = new AiOrchestrator({ provider: scriptedProvider(), now, newId });
+    rec = await fallback.authorRecommendation(authorInput);
+  }
 } else {
-  provider = new ScriptedLlmProvider(offlineNarrative, { model: "scripted-1", version: "0.0.0" });
   console.log("narrative provider: scripted (offline — set ANTHROPIC_API_KEY to author via Claude)");
+  const orch = new AiOrchestrator({ provider: scriptedProvider(), now, newId });
+  rec = await orch.authorRecommendation(authorInput);
 }
-const orch = new AiOrchestrator({
-  provider,
-  now: () => new Date().toISOString(),
-  newId: () => randomUUID(),
-});
-const rec = await orch.authorRecommendation({ clientId, draft, evidenceText: buildEvidenceText(draft) });
 
 // 5. persist for the operator console.
 await pool.query(
@@ -94,5 +111,9 @@ await pool.query(
    ON CONFLICT (id) DO NOTHING`,
   [rec.id, clientId, rec.entity.type, rec.entity.id, accountId, rec.recommendation_type, rec.confidence_score, rec.risk_level, JSON.stringify(rec), rec.created_at],
 );
-console.log(`persisted recommendation ${rec.id} (${rec.recommendation_type}, ${rec.benchmark_comparison.assessment}, conf ${rec.confidence_score.toFixed(2)})`);
+const prov = rec.model_provenance;
+console.log(
+  `persisted recommendation ${rec.id} (${rec.recommendation_type}, ${rec.benchmark_comparison.assessment}, ` +
+    `conf ${rec.confidence_score.toFixed(2)}) — authored by ${prov.provider}/${prov.model}`,
+);
 await pool.end();

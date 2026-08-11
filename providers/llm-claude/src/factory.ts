@@ -11,7 +11,9 @@ import { ClaudeProvider, type ClaudeProviderOptions } from "./claude.js";
 export function claudeProviderFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): ClaudeProvider {
-  const apiKey = env.ANTHROPIC_API_KEY;
+  // Trim so a whitespace-only value is treated as unset rather than producing a
+  // live 401 from a blank key.
+  const apiKey = env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
       "ANTHROPIC_API_KEY is not set — configure the Claude provider or use ScriptedLlmProvider for local runs",

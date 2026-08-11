@@ -236,4 +236,8 @@ describe("ClaudeProvider — interface + factory", () => {
   it("throws a clear error when ANTHROPIC_API_KEY is absent", () => {
     expect(() => claudeProviderFromEnv({})).toThrow(/ANTHROPIC_API_KEY/);
   });
+
+  it("treats a whitespace-only key as unset (no doomed 401 call)", () => {
+    expect(() => claudeProviderFromEnv({ ANTHROPIC_API_KEY: "   " })).toThrow(/ANTHROPIC_API_KEY/);
+  });
 });

@@ -35,11 +35,12 @@ services:
       BFF_DEV_PRINCIPAL: "1"
       DEMO_SEED: "1"
       DEMO_CLIENT_ID: cccccccc-0000-0000-0000-000000000001
-      # Narrative author (ADR-0003): unset → deterministic offline provider.
-      # Set a key to author the rationale via Claude (provenance then shows the
-      # model instead of "scripted"). LLM_MODEL optional (defaults to opus-tier).
-      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      # LLM_MODEL: claude-opus-5
+      # Narrative author (ADR-0003): empty → deterministic offline provider.
+      # Provide a key (export it, or put it in a repo-root .env / --env-file) to
+      # author the rationale via Claude — provenance then shows the model instead
+      # of "scripted". Both pass through empty when unset, so the demo just works.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
       # ── Production auth (uncomment; remove BFF_DEV_PRINCIPAL + set DEMO_SEED=0) ──
       # BFF_OIDC_ISSUER: https://your-idp.example.com/
       # BFF_OIDC_AUDIENCE: rtn-ads-intelligence
