@@ -1,0 +1,27 @@
+{
+  "name": "@rtnads/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests that compose the full MVP optimization loop",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rtnads/contracts": "workspace:*",
+    "@rtnads/eventbus": "workspace:*",
+    "@rtnads/ingestion-scheduler": "workspace:*",
+    "@rtnads/analytics-engine": "workspace:*",
+    "@rtnads/benchmark-engine": "workspace:*",
+    "@rtnads/decision-engine": "workspace:*",
+    "@rtnads/orchestrator": "workspace:*",
+    "@rtnads/llm-core": "workspace:*",
+    "@rtnads/policy-engine": "workspace:*",
+    "@rtnads/action-executor": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

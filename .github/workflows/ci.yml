@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-test:
+    name: build · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency-boundary guard (determinism/security invariants)
+        run: pnpm lint:boundaries
+      - name: Committed-secret scan
+        run: pnpm secret-scan
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  database:
+    name: migrations · seed · RLS isolation
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rtnads
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/rtnads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Apply migrations
+        run: node --experimental-strip-types db/migrate.ts
+      - name: Apply seed
+        run: node --experimental-strip-types db/seed.ts
+      - name: Verify seed counts
+        run: |
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.node;" | grep -qx 10
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.funnel_stage;" | grep -qx 6
+      - name: Connector read-path (fixture → normalized core/facts)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+            "INSERT INTO iam.client (id, name) VALUES ('cccccccc-0000-0000-0000-000000000001','RhinoUK') ON CONFLICT DO NOTHING;"
+          node scripts/emit-sync.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # spot-check a normalized fact came through (£42.10 → 4210 minor units)
+          psql "$DATABASE_URL" -tAc \
+            "SELECT f.spend_minor FROM facts.entity_daily f JOIN core.ad a ON a.id=f.entity_id AND f.entity_type='ad' WHERE a.external_id='ad_4001';" \
+            | grep -qx 4210
+      - name: Classify campaign context vector
+        run: |
+          node scripts/emit-classify.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # 8 current classifications land for the sample campaign
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM taxonomy.classification WHERE client_id='cccccccc-0000-0000-0000-000000000001' AND valid_to IS NULL;" | grep -qx 8
+      - name: Load historical campaigns (facts + classifications)
+        run: node scripts/emit-historical.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+      - name: Benchmark Engine cohort over Postgres (integration)
+        env:
+          HIST_LOADED: "1"
+        run: pnpm --filter @rtnads/benchmark-engine exec vitest run pg-repo.integration
+      - name: Analytics engine over the warehouse (integration, pre-CRM)
+        run: pnpm --filter @rtnads/analytics-engine test
+      - name: CRM read-path (pseudonymized outcomes) + PII-leak scan
+        run: |
+          node scripts/emit-crm.mjs cccccccc-0000-0000-0000-000000000001 | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f -
+          # funnel events landed (10+8+4+2+2+1 = 27)
+          psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.funnel_event WHERE client_id='cccccccc-0000-0000-0000-000000000001';" | grep -qx 27
+          # no raw PII may have leaked into the analytical store
+          test "$(psql "$DATABASE_URL" -tAc "SELECT count(*) FROM crm.lead WHERE attributes::text ILIKE '%@example.com%' OR pseudonym_id ILIKE '%patient%';")" = "0"
+      - name: CRM funnel economics (integration, post-CRM)
+        env:
+          CRM_LOADED: "1"
+        run: pnpm --filter @rtnads/analytics-engine exec vitest run crm-economics
+      - name: Ads Analytics MCP over Postgres (full-stack integration)
+        env:
+          CRM_LOADED: "1"
+        run: pnpm --filter @rtnads/ads-analytics-mcp exec vitest run integration
+      - name: Action Executor write-path over Postgres (integration)
+        run: pnpm --filter @rtnads/action-executor exec vitest run pg-writepath
+      - name: Pipeline — derive & persist a recommendation from the warehouse
+        run: |
+          cd services/bff
+          node scripts/seed-recommendation.mjs cccccccc-0000-0000-0000-000000000001 | grep -q "persisted recommendation"
+      - name: BFF Postgres stores + approval flow (integration)
+        run: pnpm --filter @rtnads/bff exec vitest run pg.integration
+      - name: Strategy Memory learning suggestions over Postgres (integration)
+        run: pnpm --filter @rtnads/knowledge-service exec vitest run pg.integration
+      - name: RLS isolation (fail-closed) test
+        run: |
+          psql "$DATABASE_URL" <<'SQL'
+          \set ON_ERROR_STOP on
+          INSERT INTO iam.client (id, name) VALUES
+            ('aaaaaaaa-0000-0000-0000-000000000001','A'),
+            ('bbbbbbbb-0000-0000-0000-000000000002','B');
+          INSERT INTO core.ad_account (id, client_id, platform_id, external_id, name, currency)
+            SELECT 'aaaaaaaa-0000-0000-0000-0000000000a1','aaaaaaaa-0000-0000-0000-000000000001',p.id,'a','A','GBP' FROM core.platform p WHERE p.key='meta';
+          INSERT INTO core.campaign (client_id, ad_account_id, external_id, name)
+            VALUES ('aaaaaaaa-0000-0000-0000-000000000001','aaaaaaaa-0000-0000-0000-0000000000a1','c','A');
+          SQL
+          # scoped to A → 1 row; unscoped → 0 rows (fail-closed).
+          # SET ROLE / SET app.client_id echo "SET" tags on stdout, so take the
+          # final line (the count) rather than the whole output.
+          A=$(psql "$DATABASE_URL" -tAc "SET ROLE rtnads_app; SET app.client_id='aaaaaaaa-0000-0000-0000-000000000001'; SELECT count(*) FROM core.campaign;" | tail -n1)
+          N=$(psql "$DATABASE_URL" -tAc "SET ROLE rtnads_app; SELECT count(*) FROM core.campaign;" | tail -n1)
+          echo "scoped=$A unscoped=$N"
+          test "$A" = "1"
+          test "$N" = "0"

@@ -1,0 +1,285 @@
+# RTN Ads Intelligence
+
+An AI-assisted advertising **management and optimization platform** for RTN House.
+
+RTN Ads Intelligence turns RTN House's historical advertising experience — across
+many clients, industries, countries and campaigns — into a reusable **decision
+intelligence layer**. It compares active campaigns with historically similar RTN
+campaigns, surfaces anomalies and opportunities, recommends optimization actions,
+executes approved actions, and learns from their outcomes.
+
+This is **not** a generic AI advertising assistant. It is an *agency-specific*
+advertising intelligence system.
+
+> **Status: M0–M4 complete — the MVP intelligence + controlled-action loop is in.**
+> The architecture specification in [`docs/`](./docs) is complete and remains the
+> source of truth. The full loop is implemented and tested: ingest → analytics →
+> benchmark → recommendation → narrative → **policy gate → human approval →
+> execution → immutable record + hash-chained audit**, human-in-the-loop
+> throughout. See [docs/13-mvp-milestones.md](./docs/13-mvp-milestones.md).
+
+## Getting started
+
+```bash
+pnpm install
+pnpm build          # build shared packages (contracts → domain)
+pnpm typecheck      # strict TypeScript across the workspace
+pnpm test           # unit + property tests (contracts, domain math)
+
+# database (needs a reachable PostgreSQL)
+export DATABASE_URL=postgres://user:pass@localhost:5432/rtnads
+pnpm db:migrate     # apply schema + RLS
+pnpm db:seed        # load taxonomy / dimension / funnel reference data
+```
+
+### What exists today (M0)
+
+| Area | Location | State |
+|------|----------|-------|
+| Typed boundary contracts (Zod → TS) | [`packages/contracts`](./packages/contracts) | common, taxonomy, warehouse rows, recommendation, events, Ads Analytics MCP I/O + tests |
+| Deterministic domain math | [`packages/domain`](./packages/domain) | similarity + influence weighting, taxonomy helpers + property tests |
+| Database model + tenancy | [`db/`](./db) | migrations for `iam/core/facts/taxonomy/crm`, **RLS** (fail-closed), taxonomy seed |
+| Ads connector read-path (L1) | [`services/connectors-ads`](./services/connectors-ads) | Meta **live Graph API** or fixture → pure mapper → validated `NormalizedSync` → warehouse loader (`core`/`facts`) |
+| CRM connector read-path (L1) | [`services/connectors-crm`](./services/connectors-crm) | Fixture → **pseudonymize (PII dropped)** → validated `NormalizedCrmSync` → loader (`crm.lead/funnel_event/sale`) |
+| Deterministic analytics (L3) | [`services/analytics-engine`](./services/analytics-engine) | pure metrics, funnel & unit economics + `Pg`/in-memory repos; **no LLM** |
+| Deterministic benchmarking (L3) | [`services/benchmark-engine`](./services/benchmark-engine) | influence-weighted cohorts, weighted benchmarks, robust anomaly detection; **no LLM** |
+| Context classifier (L2/L3) | [`services/classifier`](./services/classifier) | rule + ingested context-vector assignment (sourced, confidence-scored); idempotent loader |
+| Decision Engine (L3) | [`services/decision-engine`](./services/decision-engine) | benchmark + anomaly + rules → candidate recommendation **drafts** with deterministic confidence/risk; **no LLM, no narrative** |
+| Model-agnostic LLM boundary | [`providers/llm-core`](./providers/llm-core) | vendor-neutral provider interface (ADR-0003) + a deterministic scripted provider for tests |
+| AI Orchestrator (L5) | [`services/orchestrator`](./services/orchestrator) | authors the recommendation narrative over grounded evidence; **numeric-authorship guard**; records provenance; **computes nothing** |
+| Policy Engine (L6) | [`services/policy-engine`](./services/policy-engine) | deterministic, **unbypassable, fail-closed** gate → allow / needs_approval / deny with exact violated constraints |
+| Ads Actions MCP (L4) | [`mcp-servers/ads-actions-mcp`](./mcp-servers/ads-actions-mcp) | preview (pure) + gated write **requests**; every write routes through the Policy Engine, **none executes directly** |
+| Action Executor + audit (L6) | [`services/action-executor`](./services/action-executor) | executes only approved+gated actions; **immutable** pre/post records; rollback; append-only **hash-chained audit** (tamper-evident); Postgres persistence for the control plane |
+| Ads Analytics MCP (L4) | [`mcp-servers/ads-analytics-mcp`](./mcp-servers/ads-analytics-mcp) | read-only MCP tools over both engines (metrics, unit economics, **cohorts, anomalies**); capability-gated; **thin adapter, no logic** |
+| RTN Knowledge MCP (L4) | [`mcp-servers/rtn-knowledge-mcp`](./mcp-servers/rtn-knowledge-mcp) | Strategy Memory (playbooks, curated benchmarks, per-client policy) as `rtn://` resources + lookup tools |
+| CRM MCP (L4) | [`mcp-servers/crm-mcp`](./mcp-servers/crm-mcp) | read-only, **anonymized** lead-quality / funnel / sales tools — PII is not expressible by the contracts |
+| BFF / ingress | [`services/bff`](./services/bff) | REST router with **RBAC** (roles→capabilities) and **tenancy derived from the session** (never the body); recommendation/approval/action/audit endpoints |
+
+Everything above is verified: `pnpm test` (70 unit/property/round-trip tests) plus
+end-to-end DB checks in [CI](./.github/workflows/ci.yml) — cross-tenant RLS
+isolation; the Meta read-path into normalized `core`/`facts`; the CRM read-path
+with a **PII-leak scan** (no name/email/phone reaches the analytical store); the
+Analytics Engine computing correct numbers — including **CRM-driven funnel
+economics** — straight off the loaded warehouse; and a **full-stack MCP round-trip**
+(client → server → engine → Postgres) returning those numbers. All loads are
+idempotent on replay.
+
+**M0 — Foundations** is complete. **M1 — Analytics & context** is well underway:
+the Analytics Engine deterministically computes totals, derived metrics, the
+Health Tourism funnel, and business-specific unit economics — with real CRM
+outcomes now feeding *cost per qualified lead* (£26.28), *cost per booking*
+(£52.55), *CAC* (£105.10) and *revenue per lead* (£500) for the sample campaign,
+not CPL alone. The first MCP domain — **Ads Analytics MCP** — now exposes these as
+read-only, capability-gated tools, realizing the core boundary: the AI reaches
+analytics *only* through MCP and never computes a number itself. PII never leaves
+L1.
+
+**M2 — Cohorts & benchmarks** is underway: the Benchmark Engine builds
+influence-weighted cohorts of historically similar RTN campaigns
+(`influence = f(similarity)·g(recency)·h(sample)·q(quality)` — stale data does not
+count the same as recent), benchmarks a subject against them (weighted
+percentiles + direction-aware assessment), and flags anomalies with a robust
+median/MAD z-score. These surface as three more MCP tools —
+`find_similar_campaigns`, `compare_with_cohort`, `detect_anomalies`. Empty cohorts
+and flat series yield explicit "insufficient evidence", never fabricated numbers.
+
+The **Classifier** assigns each campaign's context vector (rule + ingested,
+sourced and confidence-scored), and a Postgres-backed benchmark repository now
+builds cohorts straight from the warehouse — so the whole M2 loop is proven
+end-to-end on real data: a dissimilar dental/DE campaign is correctly excluded
+from a rhinoplasty/UK cohort, stale campaigns carry less influence than recent
+ones, and the subject is benchmarked against the weighted distribution.
+
+**M3 — Recommendations** has begun with the **Decision Engine**: it turns an
+evidence bundle (benchmark + anomaly + supporting metrics) into candidate
+recommendation *drafts* with deterministic confidence and risk. Confidence is a
+function of evidence strength, sample adequacy, recency and **causal support —
+which defaults to "weak"** because historical outcomes are evidence, not proof of
+causation. When the cohort is insufficient it recommends nothing (observe). The
+drafts deliberately omit `reasoning` and `model_provenance` — those are added
+later by the AI Orchestrator (L5); the numbers are all computed here, never by an
+LLM.
+
+The **AI Orchestrator** (L5) closes the loop's reasoning step: behind a
+model-agnostic provider interface, it authors the recommendation's rationale over
+grounded evidence, records provider provenance, and assembles the full
+`Recommendation`. A **numeric-authorship guard** rejects any narrative that
+introduces a number not present in the deterministic evidence — so the LLM can
+explain, but can never fabricate a figure. The whole path is exercised in CI with
+a scripted provider, so no network or real model is needed. This makes the core
+invariant real end to end: **deterministic services compute every number; the LLM
+only reasons.**
+
+**M4 — Approval + controlled actions** has begun with the safety core of the write
+path. The **Policy Engine** is a deterministic, **fail-closed** gate: given a
+proposed change, the entity's context and the client's policy, it returns
+`allow | needs_approval | deny` with the exact violated constraints (budget-delta
+caps, minimum evidence/spend/conversions, cooldowns, maturity floor, automation
+tier, daily-spend limit, active-experiment protection, account restrictions). The
+AI cannot bypass it, and a missing policy denies by default. The **Ads Actions
+MCP** exposes preview (pure) and gated write tools — every write builds a proposed
+change, routes it through the Policy Engine, and returns `rejected_by_policy |
+pending_approval | queued`; it **never executes** a mutation itself.
+
+The **Action Executor** (L6) is the sole component that performs a mutation, and
+only for an action that passed the Policy Engine **and** (where required) human
+approval — it refuses a denied or unapproved action outright. Every execution
+captures an **immutable** pre/post-state record and appends to an append-only,
+**hash-chained audit log** in which tampering with any past entry breaks the chain
+and is detectable; rollback is supported where the platform permits. The `control`
+schema (migration 0009) persists approvals, actions, immutable records, outcome
+evaluations and the audit chain, with the audit table granted **INSERT + SELECT
+only** (never UPDATE/DELETE) to the app role. This closes the MVP's controlled
+write path: **recommend → approve → policy-gate → execute → immutable record +
+audit**, human-in-the-loop throughout. A deterministic **Outcome Evaluation** then
+compares the metric before vs after the observation window and classifies the
+result, with a **capped, conservative causal confidence** — a single before/after
+can't prove the action caused the change.
+
+The whole loop is stitched together in one deterministic
+[end-to-end test](./tests/e2e/src/full-loop.test.ts): analytics → benchmark →
+decision → orchestrator (scripted LLM) → policy → approval → execution →
+hash-chained audit → outcome, plus the negative path proving a policy-denied
+recommendation never reaches execution. No real LLM and no live platform are
+needed, so it runs in CI.
+
+The control plane is also **persisted to Postgres**: approvals, actions and
+immutable action records are written through a store, and the hash-chained audit
+log is appended in the database (the audit table is INSERT+SELECT-only for the app
+role). A CI integration test persists an approved action, executes it, stores the
+immutable record and verifies the audit chain **in the database** — the write path
+proven on real Postgres end to end.
+
+All **four MCP domains** from the architecture now exist (docs/04): **Ads
+Analytics** (read-only analytics/cohorts/anomalies), **RTN Knowledge** (Strategy
+Memory — playbooks, curated benchmarks and per-client optimization policy as
+`rtn://` resources + lookup tools, with cross-tenant policy access denied), **CRM**
+(anonymized lead-quality / funnel / sales — the contracts cannot express a
+pseudonym, name, email or phone), and **Ads Actions** (gated write requests). Each
+is a thin, capability-gated adapter over the deterministic backend; a `knowledge`
+schema (migration 0010) persists Strategy Memory with client-scoped policy under
+RLS.
+
+The **BFF** is the ingress the operator UI will consume (docs/06): a REST router
+where every route declares a required **capability** (roles resolve to
+capabilities per docs/10 — a viewer can read but not approve; an optimizer can
+approve/execute; the AI principal can never approve). Tenant scope is derived from
+the session principal's `client_id` and every data access is scoped by it, so a
+resource belonging to another client is simply 404 — cross-tenant existence never
+leaks. It exposes recommendation list/detail, approve/reject, action detail and
+audit-chain endpoints, and holds no business logic.
+
+**It runs.** The BFF ships a Node HTTP server backed by Postgres stores
+(`PgQueryStore` / `PgControlOps`) and serves a live operator console at `/`. A
+pipeline runner derives a real recommendation from the loaded warehouse
+(analytics → benchmark → decision → orchestrator, offline scripted provider) and
+persists it to `intel.recommendation` (migration 0011); the console lists it,
+shows its evidence and confidence, and **approve** writes an approval + action to
+`control.*` and a hash-chained audit entry — all against real Postgres, tenant-
+scoped. CI proves this: it runs the pipeline and the BFF store/approval-flow
+integration on every push.
+
+```bash
+# with a reachable Postgres already migrated + seeded (see db/ and scripts/)
+export DATABASE_URL=postgres://…/rtnads
+node services/bff/scripts/seed-recommendation.mjs <client-uuid>   # persist a recommendation
+DEMO_CLIENT_ID=<client-uuid> pnpm --filter @rtnads/bff dev        # serve console at :8787
+```
+
+### Live Meta ingest
+
+The Meta connector has a live Graph API source (`HttpMetaSource`) alongside the
+fixtures — same pure mapper downstream, so the live and fixture paths are
+identical. It handles pagination and retry/backoff on 429/5xx, and the **access
+token lives only in the L1 boundary** (from the environment) — it never reaches
+the SQL, logs, MCP payloads or the LLM, and is redacted from error messages. It is
+tested deterministically with an injected `fetch` (no live account). To ingest a
+real account:
+
+```bash
+META_ACCESS_TOKEN=… META_ACCOUNT_ID=act_123 \
+  node scripts/ingest-meta.mjs <client-uuid> 2026-07-01 2026-07-31 | psql "$DATABASE_URL" -f -
+```
+
+---
+
+## Core design commitments
+
+1. **Deterministic math, probabilistic reasoning.** LLMs never perform raw
+   analytics. All numerical computation — aggregation, benchmarking, cohort
+   selection, anomaly detection, statistics — is performed by backend services.
+   The LLM is the reasoning and orchestration layer only.
+2. **Human-in-the-loop first.** Phase 1 is read-only analysis and
+   recommendations. Phase 2 adds approval of prepared actions. Autonomous
+   optimization is not implemented until enough Recommendation → Action → Result
+   data exists to justify it.
+3. **Model-agnostic core.** The platform is not coupled to Claude or any single
+   LLM provider. The LLM sits behind a provider abstraction; MCP is the
+   integration boundary.
+4. **Everything is auditable.** Every recommendation and every executed action
+   produces an immutable record with pre-state, reasoning, approval, executed
+   change, and post-action outcome.
+5. **Policy is deterministic and unbypassable.** A deterministic Policy Engine
+   sits between the AI and every platform mutation. The AI cannot bypass it.
+6. **Credentials never reach the LLM.** PII is separated from analytical data
+   using internal pseudonymous identifiers.
+
+---
+
+## The optimization pipeline
+
+```
+Advertising APIs
+   → Data Ingestion
+      → Normalized Data Warehouse
+         → Analytics Engine
+            → Benchmark Engine
+               → Decision Engine
+                  → AI Orchestrator
+                     → Policy Engine
+                        → Action Executor
+                           → Advertising APIs
+```
+
+Analytics, Benchmark and Decision engines are deterministic. The AI Orchestrator
+reasons over their structured output via MCP. The Policy Engine gates every
+mutation before the Action Executor touches a platform.
+
+---
+
+## Documentation index
+
+The brief requires these specifications before implementation. Each lives in
+[`docs/`](./docs):
+
+| # | Document | Covers |
+|---|----------|--------|
+| 00 | [Overview](./docs/00-overview.md) | Vision, goals, scope, guiding principles, glossary pointer |
+| 01 | [System Architecture](./docs/01-system-architecture.md) | Layered architecture, components, technology choices, deployment |
+| 02 | [Domain Model](./docs/02-domain-model.md) | Entities, industry taxonomy, campaign context model, similarity model |
+| 03 | [Database Model](./docs/03-database-model.md) | Schemas, tables, keys, extensible taxonomy & context storage, ERD |
+| 04 | [MCP Architecture](./docs/04-mcp-architecture.md) | MCP domains, boundaries, what belongs (and doesn't) in MCP |
+| 05 | [MCP Tool Contracts](./docs/05-mcp-tool-contracts.md) | Tool & resource JSON contracts for each MCP domain |
+| 06 | [API Boundaries](./docs/06-api-boundaries.md) | Service-to-service contracts, external ingress, internal APIs |
+| 07 | [Service Responsibilities](./docs/07-service-responsibilities.md) | Each service's single responsibility and dependencies |
+| 08 | [Event Flow](./docs/08-event-flow.md) | Ingestion, analysis, recommendation, action and learning events |
+| 09 | [Security Model](./docs/09-security-model.md) | Credential isolation, PII pseudonymization, tenancy, threat model |
+| 10 | [Permission Model](./docs/10-permission-model.md) | Roles, client automation permissions, policy-scoped authority |
+| 11 | [Optimization Workflow](./docs/11-optimization-workflow.md) | End-to-end loop from active campaign to learned outcome |
+| 12 | [Repository Structure](./docs/12-repository-structure.md) | Monorepo layout, package boundaries, ownership |
+| 13 | [MVP Milestones](./docs/13-mvp-milestones.md) | Phased delivery plan and acceptance criteria |
+| 14 | [Testing Strategy](./docs/14-testing-strategy.md) | Test pyramid, determinism tests, policy tests, eval harness |
+| 15 | [Observability Strategy](./docs/15-observability-strategy.md) | Logging, metrics, tracing, LLM/decision telemetry, audit |
+|  — | [Glossary](./docs/glossary.md) | Shared vocabulary |
+|  — | [ADRs](./docs/adr/) | Architecture Decision Records |
+
+---
+
+## How to read this
+
+- Start with **[00-overview](./docs/00-overview.md)** for scope and principles.
+- **[01-system-architecture](./docs/01-system-architecture.md)** is the map;
+  every other document zooms into a region of it.
+- Reviewers focused on data should read **02 → 03**.
+- Reviewers focused on AI integration should read **04 → 05 → 11**.
+- Reviewers focused on safety should read **09 → 10 → 11**.

@@ -1,0 +1,28 @@
+{
+  "name": "@rtnads/orchestrator",
+  "version": "0.1.0",
+  "description": "L5 AI Orchestrator — authors recommendation narratives via a model-agnostic provider (no math)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rtnads/contracts": "workspace:*",
+    "@rtnads/llm-core": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

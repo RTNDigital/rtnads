@@ -1,0 +1,27 @@
+{
+  "name": "@rtnads/ingestion-scheduler",
+  "version": "0.1.0",
+  "description": "L1 sync orchestration — recurring ingestion syncs and outcome-window timers over the event bus (docs/08 Flows A & E)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rtnads/contracts": "workspace:*",
+    "@rtnads/eventbus": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

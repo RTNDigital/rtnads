@@ -1,0 +1,54 @@
+# One-command bring-up of RTN Ads Intelligence: `docker compose up --build`.
+# Postgres + the BFF/operator console. On first boot the BFF applies the schema,
+# seeds reference data, loads a demo warehouse, and derives a recommendation, then
+# serves the console at http://localhost:8787.
+#
+# For a real deployment: set DEMO_SEED=0 and configure OIDC (see the commented
+# block below and DEPLOY.md) instead of BFF_DEV_PRINCIPAL.
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rtnads
+      POSTGRES_PASSWORD: rtnads
+      POSTGRES_DB: rtnads
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rtnads -d rtnads"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  bff:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://rtnads:rtnads@db:5432/rtnads
+      PORT: "8787"
+      # ── Demo mode (default) ──────────────────────────────────────────────
+      # Fixed Optimizer principal + a loaded demo warehouse, so the console
+      # works with no IdP. Turn BOTH off for production.
+      BFF_DEV_PRINCIPAL: "1"
+      DEMO_SEED: "1"
+      DEMO_CLIENT_ID: cccccccc-0000-0000-0000-000000000001
+      # Narrative author (ADR-0003): empty → deterministic offline provider.
+      # Provide a key (export it, or put it in a repo-root .env / --env-file) to
+      # author the rationale via Claude — provenance then shows the model instead
+      # of "scripted". Both pass through empty when unset, so the demo just works.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      # ── Production auth (uncomment; remove BFF_DEV_PRINCIPAL + set DEMO_SEED=0) ──
+      # BFF_OIDC_ISSUER: https://your-idp.example.com/
+      # BFF_OIDC_AUDIENCE: rtn-ads-intelligence
+      # BFF_OIDC_JWKS_URI: https://your-idp.example.com/.well-known/jwks.json
+      # # or a symmetric secret instead of JWKS:
+      # BFF_JWT_HS256_SECRET: ${BFF_JWT_HS256_SECRET}
+    ports:
+      - "8787:8787"
+
+volumes:
+  pgdata:
