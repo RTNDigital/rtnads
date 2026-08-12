@@ -37,7 +37,10 @@ const deps = {
 };
 
 const authenticate = buildAuthenticator(clientId);
-startBffServer({ deps, authenticate, port });
+const readiness = async () => {
+  await pool.query("SELECT 1");
+};
+startBffServer({ deps, authenticate, port, readiness });
 
 function buildAuthenticator(demoClientId: string): (req: IncomingMessage) => Principal | Promise<Principal> {
   if (process.env.BFF_DEV_PRINCIPAL === "1") {

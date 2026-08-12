@@ -53,6 +53,26 @@ configuration — set `ANTHROPIC_API_KEY` (and optionally `LLM_MODEL`) and wire
 `@rtnads/llm-claude`'s `claudeProviderFromEnv()` into the orchestrator's
 composition root. No core code changes.
 
+## Health probes
+
+The BFF exposes two unauthenticated endpoints for orchestrators and load balancers:
+
+| Path | Meaning | Use for |
+|---|---|---|
+| `GET /healthz` | Process is up (always 200) | liveness probe / container healthcheck |
+| `GET /readyz` | Dependencies usable — 200, or 503 when the database is unreachable | readiness probe / gating traffic |
+
+Compose wires `/healthz` as the `bff` container healthcheck. On Kubernetes, map
+`/healthz` to `livenessProbe` and `/readyz` to `readinessProbe`:
+
+```yaml
+livenessProbe:
+  httpGet: { path: /healthz, port: 8787 }
+readinessProbe:
+  httpGet: { path: /readyz, port: 8787 }
+  initialDelaySeconds: 20
+```
+
 ## What runs where
 
 | Component | Container | Notes |

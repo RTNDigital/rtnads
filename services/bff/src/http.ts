@@ -32,6 +32,11 @@ export interface HttpServerOptions {
   /** Resolve the session principal from the request, or throw AuthError → 401. */
   authenticate: (req: IncomingMessage) => Principal | Promise<Principal>;
   port: number;
+  /**
+   * Readiness probe: throws when a dependency (e.g. the database) is unavailable.
+   * Backs `GET /readyz`. Omitted → readiness always passes (in-memory/tests).
+   */
+  readiness?: () => Promise<void>;
 }
 
 export function startBffServer(opts: HttpServerOptions) {
@@ -43,6 +48,25 @@ export function startBffServer(opts: HttpServerOptions) {
       if (req.method === "GET" && (url === "/" || url === "/index.html")) {
         res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         res.end(readFileSync(CONSOLE_HTML));
+        return;
+      }
+      // Health probes — unauthenticated (a load balancer / k8s probe carries no
+      // token). Liveness = the process is up; readiness = dependencies are usable.
+      if (req.method === "GET" && url === "/healthz") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ status: "ok" }));
+        return;
+      }
+      if (req.method === "GET" && url === "/readyz") {
+        try {
+          if (opts.readiness) await opts.readiness();
+        } catch {
+          res.writeHead(503, { "content-type": "application/json" });
+          res.end(JSON.stringify({ status: "not_ready", error: "database unavailable" }));
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ status: "ready" }));
         return;
       }
       if (!url.startsWith("/v1/")) {

@@ -49,6 +49,18 @@ services:
       # BFF_JWT_HS256_SECRET: ${BFF_JWT_HS256_SECRET}
     ports:
       - "8787:8787"
+    healthcheck:
+      # Liveness probe against the BFF itself (the slim image has node, not curl).
+      # start_period covers first-boot migrate/seed/demo-load.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
 volumes:
   pgdata:
