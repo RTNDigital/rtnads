@@ -21,6 +21,30 @@ the `pgdata` volume.
 The demo runs with a fixed **Optimizer** principal (`BFF_DEV_PRINCIPAL=1`) so the
 console works without an identity provider.
 
+## Published image (GHCR)
+
+On every merge to `main` (and on `v*` tags), CI builds the runtime image and
+publishes it to GitHub Container Registry — no external registry account needed
+(it authenticates with the repo's `GITHUB_TOKEN`):
+
+```
+ghcr.io/rtndigital/rtnads:latest      # newest main
+ghcr.io/rtndigital/rtnads:sha-<commit>
+ghcr.io/rtndigital/rtnads:<version>    # on a v* tag
+```
+
+Deploy by pulling instead of building — e.g. pin the image in Compose:
+
+```yaml
+# docker-compose.override.yml
+services:
+  bff:
+    image: ghcr.io/rtndigital/rtnads:latest
+    build: !reset null   # ignore the local Dockerfile; use the published image
+```
+
+or reference the same tag from a Kubernetes Deployment.
+
 ## Going to production
 
 Two changes to `docker-compose.yml` (or your `.env` — see `deploy/.env.example`):
