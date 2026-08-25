@@ -5,6 +5,8 @@ import { auth } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { ONBOARDING_CHECKS } from "@/lib/constants/onboarding-checks";
 
+const CLIENT_TYPES = ["clinic", "doctor", "agency"] as const;
+
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,6 +23,13 @@ export async function POST(request: Request) {
 
   const orgId = (session.user as any).orgId;
   const body = await request.json();
+
+  if (!CLIENT_TYPES.includes(body.type)) {
+    return NextResponse.json(
+      { error: `type must be one of: ${CLIENT_TYPES.join(", ")}` },
+      { status: 400 }
+    );
+  }
 
   const [client] = await db.insert(clients).values({
     orgId,

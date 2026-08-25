@@ -12,6 +12,16 @@ export async function GET(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const orgId = (session.user as any).orgId;
+
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, id), eq(clients.orgId, orgId)))
+    .limit(1);
+
+  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const checks = await db
     .select()
     .from(clientOnboardingChecks)
@@ -28,6 +38,16 @@ export async function PATCH(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const orgId = (session.user as any).orgId;
+
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, id), eq(clients.orgId, orgId)))
+    .limit(1);
+
+  if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const { checkKey, status, notes } = await request.json();
 
   const [updated] = await db
@@ -61,7 +81,7 @@ export async function PATCH(
   await db
     .update(clients)
     .set({ onboardingStatus: newOnboardingStatus, updatedAt: new Date() })
-    .where(eq(clients.id, id));
+    .where(and(eq(clients.id, id), eq(clients.orgId, orgId)));
 
   return NextResponse.json({ check: updated, onboardingStatus: newOnboardingStatus });
 }

@@ -31,10 +31,28 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
+  const {
+    name,
+    type,
+    treatmentCategories,
+    targetMarkets,
+    monthlyBudget,
+    budgetCurrency,
+    notes,
+  } = body;
 
   const [updated] = await db
     .update(clients)
-    .set({ ...body, updatedAt: new Date() })
+    .set({
+      name,
+      type,
+      treatmentCategories,
+      targetMarkets,
+      monthlyBudget,
+      budgetCurrency,
+      notes,
+      updatedAt: new Date(),
+    })
     .where(and(eq(clients.id, id), eq(clients.orgId, (session.user as any).orgId)))
     .returning();
 

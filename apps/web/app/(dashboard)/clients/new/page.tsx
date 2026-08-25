@@ -72,7 +72,7 @@ export default function NewClientPage() {
                 <SelectContent>
                   <SelectItem value="clinic">Clinic</SelectItem>
                   <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="agency">Agency (Acente)</SelectItem>
+                  <SelectItem value="agency">Agency</SelectItem>
                 </SelectContent>
               </Select>
             </div>
