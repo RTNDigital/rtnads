@@ -13,6 +13,7 @@ export const metaAdAccounts = pgTable("meta_ad_accounts", {
   currency: text("currency").default("USD"),
   timezone: text("timezone"),
   status: text("status").default("active"),
+  lastSyncedAt: timestamp("last_synced_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -32,6 +33,7 @@ export const campaigns = pgTable("campaigns", {
   budgetCurrency: text("budget_currency").default("USD"),
   incentiveRate: integer("incentive_rate"),
   status: text("status").default("draft"),
+  metaStatus: text("meta_status"),
   approvalStatus: text("approval_status", {
     enum: ["draft", "pending_approval", "approved", "live", "paused", "rejected"],
   }).notNull().default("draft"),
@@ -117,4 +119,44 @@ export const creativePerformance = pgTable("creative_performance", {
   roas: real("roas"),
   conversionRate: real("conversion_rate"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const leads = pgTable("leads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clientId: uuid("client_id").references(() => clients.id).notNull(),
+  campaignId: uuid("campaign_id").references(() => campaigns.id),
+  adSetId: uuid("ad_set_id").references(() => adSets.id),
+  adId: uuid("ad_id").references(() => ads.id),
+  leadFormId: uuid("lead_form_id").references(() => leadForms.id),
+  metaLeadId: text("meta_lead_id").unique(),
+  formData: jsonb("form_data").$type<Record<string, string>>().default({}),
+  name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  whatsapp: text("whatsapp"),
+  country: text("country"),
+  city: text("city"),
+  status: text("status", {
+    enum: ["new", "contacted", "qualified", "converted", "lost"],
+  }).notNull().default("new"),
+  source: text("source", {
+    enum: ["meta_webhook", "meta_poll", "manual"],
+  }).notNull().default("meta_webhook"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const syncLogs = pgTable("sync_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").references(() => metaAdAccounts.id),
+  syncType: text("sync_type", {
+    enum: ["campaigns", "insights", "leads", "full"],
+  }).notNull(),
+  status: text("status", {
+    enum: ["running", "completed", "failed"],
+  }).notNull().default("running"),
+  itemsSynced: integer("items_synced").default(0),
+  errors: jsonb("errors").$type<{ message: string; entity?: string }[]>().default([]),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
 });
