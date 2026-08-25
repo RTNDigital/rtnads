@@ -10,6 +10,7 @@ const navItems = [
   { label: "Clients", href: "/clients", icon: "Users" },
   { label: "Campaigns", href: "/campaigns", icon: "Megaphone" },
   { label: "Creatives", href: "/creatives", icon: "Image" },
+  { label: "Leads", href: "/leads", icon: "Contact" },
   { label: "Chat", href: "/chat", icon: "MessageSquare" },
   { label: "Knowledge", href: "/knowledge", icon: "BookOpen" },
   { label: "Settings", href: "/settings", icon: "Settings" },
