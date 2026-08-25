@@ -16,7 +16,7 @@ export async function GET() {
   const allCampaigns = await db
     .select()
     .from(campaigns)
-    .innerJoin(metaAdAccounts, eq(campaigns.metaAdAccountId, metaAdAccounts.id))
+    .leftJoin(metaAdAccounts, eq(campaigns.metaAdAccountId, metaAdAccounts.id))
     .innerJoin(clients, eq(campaigns.clientId, clients.id))
     .where(eq(clients.orgId, orgId));
 

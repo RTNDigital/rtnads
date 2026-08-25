@@ -52,8 +52,8 @@ export async function fullSync(
         status: mc.effective_status === "ACTIVE" ? "live" : "paused",
         metaStatus: mc.effective_status,
         approvalStatus: mc.effective_status === "ACTIVE" ? "live" : "paused",
-        dailyBudget: mc.daily_budget ? parseInt(mc.daily_budget) : null,
-        lifetimeBudget: mc.lifetime_budget ? parseInt(mc.lifetime_budget) : null,
+        dailyBudget: mc.daily_budget ? Math.round(parseInt(mc.daily_budget) / 100) : null,
+        lifetimeBudget: mc.lifetime_budget ? Math.round(parseInt(mc.lifetime_budget) / 100) : null,
         startDate: mc.start_time ? new Date(mc.start_time) : null,
         endDate: mc.stop_time ? new Date(mc.stop_time) : null,
       }).onConflictDoUpdate({
@@ -61,7 +61,7 @@ export async function fullSync(
         set: {
           name: mc.name,
           metaStatus: mc.effective_status,
-          dailyBudget: mc.daily_budget ? parseInt(mc.daily_budget) : null,
+          dailyBudget: mc.daily_budget ? Math.round(parseInt(mc.daily_budget) / 100) : null,
           updatedAt: new Date(),
         },
       });
@@ -247,6 +247,14 @@ export async function incrementalInsightsSync(
       { level: "campaign", dateRange: { since, until }, timeIncrement: 1 },
       metaAccountId,
     );
+
+    // TODO: `creativePerformance` rows are keyed by `creativeId`, but these insights
+    // are fetched at the campaign level, so there is no creative to attach them to.
+    // Persisting requires switching this fetch to level: "ad" and mapping each
+    // insight to its creative via the `ads` table (ad -> creativeId). Until that
+    // mapping is implemented, we only count the fetched insights here and do not
+    // persist them, so the sync log accurately reflects that the operation ran
+    // without silently dropping data into the wrong shape.
     itemsSynced = insights.length;
   } catch (e: any) {
     errors.push({ message: e.message, entity: "insights sync" });

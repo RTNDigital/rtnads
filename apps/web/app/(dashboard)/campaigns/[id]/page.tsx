@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { campaigns, adSets, ads, leads, clients } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -68,9 +68,7 @@ export default async function CampaignDetailPage({
 
   const adSetIds = campaignAdSets.map((s) => s.id);
   const campaignAds = adSetIds.length > 0
-    ? await db.select().from(ads).where(
-        eq(ads.adSetId, adSetIds[0])
-      )
+    ? await db.select().from(ads).where(inArray(ads.adSetId, adSetIds))
     : [];
 
   const campaignLeads = await db.select().from(leads)
