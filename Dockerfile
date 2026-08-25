@@ -17,7 +17,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://placeholder:placeholder@placeholder.neon.tech/placeholder?sslmode=require"
 ENV AUTH_SECRET="build-time-placeholder"
-RUN pnpm build --filter web
+RUN cd apps/web && npx next build
 
 FROM base AS runner
 WORKDIR /app
