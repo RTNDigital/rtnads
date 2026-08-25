@@ -15,6 +15,8 @@ COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_module
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL="postgresql://placeholder:placeholder@placeholder.neon.tech/placeholder?sslmode=require"
+ENV AUTH_SECRET="build-time-placeholder"
 RUN pnpm build --filter web
 
 FROM base AS runner
