@@ -4,6 +4,8 @@ import { clients } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 
+const CLIENT_TYPES = ["clinic", "doctor", "agency"] as const;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -30,7 +32,14 @@ export async function PATCH(
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await request.json();
+
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   const {
     name,
     type,
@@ -40,6 +49,13 @@ export async function PATCH(
     budgetCurrency,
     notes,
   } = body;
+
+  if (type !== undefined && !CLIENT_TYPES.includes(type)) {
+    return NextResponse.json(
+      { error: `type must be one of: ${CLIENT_TYPES.join(", ")}` },
+      { status: 400 }
+    );
+  }
 
   const [updated] = await db
     .update(clients)

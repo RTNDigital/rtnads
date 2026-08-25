@@ -32,11 +32,6 @@ async function seed() {
     { countryCode: "SA", countryName: "Saudi Arabia", incentiveRate: 70 },
   ];
 
-  for (const country of ek53Countries) {
-    await db.insert(schema.incentiveCountries).values(country).onConflictDoNothing();
-  }
-  console.log(`Seeded ${ek53Countries.length} EK-53 countries`);
-
   // Agency disclaimers
   const disclaimers = [
     {
@@ -48,11 +43,6 @@ async function seed() {
       disclaimerText: "Treatments are performed at a contractually affiliated healthcare facility that holds an official authorization for international health tourism.",
     },
   ];
-
-  for (const disclaimer of disclaimers) {
-    await db.insert(schema.agencyDisclaimers).values(disclaimer).onConflictDoNothing();
-  }
-  console.log(`Seeded ${disclaimers.length} agency disclaimers`);
 
   // Platform rules
   const rules = [
@@ -108,11 +98,6 @@ async function seed() {
     },
   ];
 
-  for (const rule of rules) {
-    await db.insert(schema.platformRules).values(rule);
-  }
-  console.log(`Seeded ${rules.length} platform rules`);
-
   // Lead form templates
   const templates = [
     {
@@ -144,11 +129,31 @@ async function seed() {
     },
   ];
 
-  for (const template of templates) {
-    await db.insert(schema.leadFormTemplates).values(template);
-  }
-  console.log(`Seeded ${templates.length} lead form templates`);
+  // The neon-http driver does not support db.transaction(); db.batch() runs a
+  // sequence of queries atomically over a single HTTP round-trip instead.
+  // incentiveCountries/agencyDisclaimers rely on their unique constraints
+  // (onConflictDoNothing), while platformRules/leadFormTemplates have no
+  // unique constraint to conflict on, so we delete-then-insert them within
+  // the same batch to keep the whole seed idempotent.
+  const queries = [
+    ...ek53Countries.map((country) =>
+      db.insert(schema.incentiveCountries).values(country).onConflictDoNothing()
+    ),
+    ...disclaimers.map((disclaimer) =>
+      db.insert(schema.agencyDisclaimers).values(disclaimer).onConflictDoNothing()
+    ),
+    db.delete(schema.platformRules),
+    ...rules.map((rule) => db.insert(schema.platformRules).values(rule)),
+    db.delete(schema.leadFormTemplates),
+    ...templates.map((template) => db.insert(schema.leadFormTemplates).values(template)),
+  ] as unknown as Parameters<typeof db.batch>[0];
 
+  await db.batch(queries);
+
+  console.log(`Seeded ${ek53Countries.length} EK-53 countries`);
+  console.log(`Seeded ${disclaimers.length} agency disclaimers`);
+  console.log(`Seeded ${rules.length} platform rules`);
+  console.log(`Seeded ${templates.length} lead form templates`);
   console.log("Seed complete!");
 }
 

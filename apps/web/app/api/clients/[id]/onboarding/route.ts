@@ -4,6 +4,8 @@ import { clientOnboardingChecks, clients } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 
+const VALID_STATUSES = ["pass", "fail", "pending"] as const;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -48,7 +50,21 @@ export async function PATCH(
 
   if (!client) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { checkKey, status, notes } = await request.json();
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { checkKey, status, notes } = body;
+
+  if (!VALID_STATUSES.includes(status)) {
+    return NextResponse.json(
+      { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
+      { status: 400 }
+    );
+  }
 
   const [updated] = await db
     .update(clientOnboardingChecks)
