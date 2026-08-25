@@ -22,7 +22,7 @@ export const campaigns = pgTable("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
   clientId: uuid("client_id").references(() => clients.id).notNull(),
   metaAdAccountId: uuid("meta_ad_account_id").references(() => metaAdAccounts.id),
-  metaCampaignId: text("meta_campaign_id"),
+  metaCampaignId: text("meta_campaign_id").unique(),
   name: text("name").notNull(),
   campaignType: text("campaign_type", { enum: ["standard", "event"] }).notNull().default("standard"),
   objective: text("objective"),
@@ -51,7 +51,7 @@ export const campaigns = pgTable("campaigns", {
 export const adSets = pgTable("ad_sets", {
   id: uuid("id").primaryKey().defaultRandom(),
   campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "cascade" }).notNull(),
-  metaAdsetId: text("meta_adset_id"),
+  metaAdsetId: text("meta_adset_id").unique(),
   name: text("name").notNull(),
   targeting: jsonb("targeting").$type<Record<string, unknown>>().default({}),
   optimizationGoal: text("optimization_goal"),
@@ -65,7 +65,7 @@ export const adSets = pgTable("ad_sets", {
 export const leadForms = pgTable("lead_forms", {
   id: uuid("id").primaryKey().defaultRandom(),
   clientId: uuid("client_id").references(() => clients.id).notNull(),
-  metaFormId: text("meta_form_id"),
+  metaFormId: text("meta_form_id").unique(),
   name: text("name").notNull(),
   locale: text("locale").notNull().default("en"),
   treatmentCategory: text("treatment_category"),
@@ -82,7 +82,7 @@ export const leadForms = pgTable("lead_forms", {
 export const ads = pgTable("ads", {
   id: uuid("id").primaryKey().defaultRandom(),
   adSetId: uuid("ad_set_id").references(() => adSets.id, { onDelete: "cascade" }).notNull(),
-  metaAdId: text("meta_ad_id"),
+  metaAdId: text("meta_ad_id").unique(),
   creativeId: uuid("creative_id"),
   leadFormId: uuid("lead_form_id").references(() => leadForms.id),
   status: text("status").default("draft"),
@@ -94,7 +94,7 @@ export const ads = pgTable("ads", {
 export const creatives = pgTable("creatives", {
   id: uuid("id").primaryKey().defaultRandom(),
   sourceAdAccountId: uuid("source_ad_account_id").references(() => metaAdAccounts.id),
-  metaCreativeId: text("meta_creative_id"),
+  metaCreativeId: text("meta_creative_id").unique(),
   type: text("type", { enum: ["image", "video", "carousel"] }).notNull(),
   treatmentCategory: text("treatment_category"),
   targetCountry: text("target_country"),
