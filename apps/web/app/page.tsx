@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-4xl font-bold">{APP_NAME}</h1>
-      <p className="text-muted-foreground">Reklam Karar-Zekâsı Platformu</p>
+      <p className="text-muted-foreground">Ad Decision Intelligence Platform</p>
       <Button>Get Started</Button>
     </main>
   );
