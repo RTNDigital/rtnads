@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.claude
+.superpowers
+.turbo
+*.md
+!README.md
+.env*
