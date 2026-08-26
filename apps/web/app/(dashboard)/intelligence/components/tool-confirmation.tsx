@@ -25,9 +25,8 @@ function formatValue(value: unknown): string {
 
 export function ToolConfirmation({ toolName, input, onApprove, onReject, isExecuting }: ToolConfirmationProps) {
   const label = TOOL_LABELS[toolName] ?? toolName;
-  const displayArgs = Object.entries(input).filter(([key]) =>
-    !["clientId", "campaignId"].includes(key)
-  );
+  const hiddenKeys = toolName === "publishCampaign" ? ["clientId"] : ["clientId", "campaignId"];
+  const displayArgs = Object.entries(input).filter(([key]) => !hiddenKeys.includes(key));
 
   return (
     <div className="my-2 max-w-md rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
