@@ -11,7 +11,7 @@ const navItems = [
   { label: "Campaigns", href: "/campaigns", icon: "Megaphone" },
   { label: "Creatives", href: "/creatives", icon: "Image" },
   { label: "Leads", href: "/leads", icon: "Contact" },
-  { label: "Chat", href: "/chat", icon: "MessageSquare" },
+  { label: "Intelligence", href: "/intelligence", icon: "Brain" },
   { label: "Knowledge", href: "/knowledge", icon: "BookOpen" },
   { label: "Settings", href: "/settings", icon: "Settings" },
 ];
