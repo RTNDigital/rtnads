@@ -23,7 +23,11 @@ export async function POST(req: Request) {
   const userId = session.user.id!;
   const orgId = (session.user as any).orgId as string;
 
-  await ensureChat(chatId, userId);
+  try {
+    await ensureChat(chatId, userId);
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
   if (lastUserMessage) {

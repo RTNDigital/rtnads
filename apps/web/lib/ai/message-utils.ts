@@ -5,7 +5,14 @@ import { generateId, isToolUIPart, getToolName } from "ai";
 import type { UIMessage } from "ai";
 
 export async function ensureChat(chatId: string, userId: string): Promise<void> {
-  const [existing] = await db.select({ id: chats.id }).from(chats).where(eq(chats.id, chatId)).limit(1);
+  const [existing] = await db
+    .select({ id: chats.id, userId: chats.userId })
+    .from(chats)
+    .where(eq(chats.id, chatId))
+    .limit(1);
+  if (existing && existing.userId !== userId) {
+    throw new Error("Forbidden");
+  }
   if (!existing) {
     await db.insert(chats).values({ id: chatId, userId });
   }
