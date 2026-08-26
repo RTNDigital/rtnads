@@ -42,6 +42,15 @@ export async function checkCampaignPolicies(
     });
   }
 
+  if (draft.targetCountries.some((c) => c === "Turkey" || c === "TR")) {
+    results.push({
+      level: "blocker",
+      code: "TURKEY_TARGETING",
+      message: "Türkiye hedef ülkelerde olamaz. Türkiye'ye reklam gösterilmesi teşvik hakkını ortadan kaldırır.",
+      field: "targetCountries",
+    });
+  }
+
   const ek53Countries = await getEk53Countries();
   const ek53Names = ek53Countries.map((c) => c.name);
   const ek53Count = draft.targetCountries.filter((c) => ek53Names.includes(c)).length;

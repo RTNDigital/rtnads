@@ -343,6 +343,17 @@ async function seed() {
         replaceTo: "Whats.App",
       },
     },
+    {
+      platform: "meta" as const,
+      ruleType: "TURKEY_TARGETING",
+      countryScope: ["TR"],
+      ruleContent: {
+        level: "blocker",
+        message: "Türkiye hedef ülkelerde olamaz. Türkiye'ye reklam gösterilmesi teşvik hakkını ortadan kaldırır.",
+        field: "targetCountries",
+      },
+      active: true,
+    },
   ];
 
   const queries = [
