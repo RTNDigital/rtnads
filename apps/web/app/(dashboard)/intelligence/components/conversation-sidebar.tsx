@@ -65,11 +65,19 @@ export function ConversationSidebar({ activeId, onSelect, onNew, refreshKey }: C
           <p className="p-3 text-xs text-muted-foreground">Henüz konuşma yok</p>
         )}
         {conversations.map((conv) => (
-          <button
+          <div
             key={conv.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(conv.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(conv.id);
+              }
+            }}
             className={cn(
-              "group flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
+              "group flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors",
               activeId === conv.id
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -85,7 +93,7 @@ export function ConversationSidebar({ activeId, onSelect, onNew, refreshKey }: C
             >
               ✕
             </button>
-          </button>
+          </div>
         ))}
       </div>
     </div>

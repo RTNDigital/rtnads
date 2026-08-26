@@ -47,6 +47,9 @@ export async function PATCH(
   if (body.treatmentCategory !== undefined) updateData.treatmentCategory = body.treatmentCategory;
   if (body.objective !== undefined) updateData.objective = body.objective;
   if (body.budgetCurrency !== undefined) updateData.budgetCurrency = body.budgetCurrency;
+  if (body.headline !== undefined) updateData.headline = body.headline;
+  if (body.description !== undefined) updateData.description = body.description;
+  if (body.adCopy !== undefined) updateData.adCopy = body.adCopy;
 
   const [updated] = await db
     .update(campaigns)

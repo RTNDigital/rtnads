@@ -28,7 +28,7 @@ export default function IntelligencePage() {
   const [pendingToolCallId, setPendingToolCallId] = useState<string | null>(null);
   const [isToolExecuting, setIsToolExecuting] = useState(false);
 
-  const { messages, sendMessage, addToolOutput, status } = useChat({
+  const { messages, setMessages, sendMessage, addToolOutput, status } = useChat({
     id: chatId,
     transport: new DefaultChatTransport({
       api: "/api/intelligence/chat",
@@ -122,9 +122,18 @@ export default function IntelligencePage() {
     setSidebarRefreshKey((k) => k + 1);
   }, []);
 
-  const handleSelectConversation = useCallback((id: string) => {
+  const handleSelectConversation = useCallback(async (id: string) => {
     setChatId(id);
-  }, []);
+    try {
+      const res = await fetch(`/api/intelligence/conversations/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+      }
+    } catch {
+      // silently fail — user sees empty chat
+    }
+  }, [setMessages]);
 
   const hasMessages = messages.length > 0;
 

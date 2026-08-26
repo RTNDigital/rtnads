@@ -27,9 +27,14 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const orgId = (session.user as any).orgId;
   const body = await request.json();
 
-  const [client] = await db.select().from(clients).where(eq(clients.id, body.clientId)).limit(1);
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, body.clientId), eq(clients.orgId, orgId)))
+    .limit(1);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   const policyResults = await checkCampaignPolicies({

@@ -44,6 +44,9 @@ export const campaigns = pgTable("campaigns", {
   eventId: uuid("event_id"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
+  headline: text("headline"),
+  description: text("ad_description"),
+  adCopy: text("ad_copy"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
