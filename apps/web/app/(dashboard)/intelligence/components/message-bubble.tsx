@@ -5,7 +5,7 @@ import { isToolUIPart, getToolName } from "ai";
 import { cn } from "@/lib/utils";
 import { ToolConfirmation } from "./tool-confirmation";
 import { ToolResultCard } from "./tool-result-card";
-import { isActionTool } from "@/lib/ai";
+import { isActionTool } from "@/lib/ai/tools/actions";
 import type { UIMessage } from "ai";
 
 interface MessageBubbleProps {

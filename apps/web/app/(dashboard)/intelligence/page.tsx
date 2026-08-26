@@ -9,7 +9,7 @@ import {
   isToolUIPart,
   getToolName,
 } from "ai";
-import { isActionTool } from "@/lib/ai";
+import { isActionTool } from "@/lib/ai/tools/actions";
 import { ChatInput } from "./components/chat-input";
 import { MessageList } from "./components/message-list";
 import { SuggestionCards } from "./components/suggestion-cards";
