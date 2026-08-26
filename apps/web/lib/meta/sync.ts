@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
 import {
   metaAdAccounts, campaigns, adSets, ads,
-  leadForms, creatives, syncLogs,
+  leadForms, creatives, syncLogs, campaignInsights,
 } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 import { listCampaigns } from "./campaigns";
 import { listAdSets } from "./adsets";
 import { listAds } from "./ads";
@@ -242,20 +242,71 @@ export async function incrementalInsightsSync(
     const since = sevenDaysAgo.toISOString().split("T")[0];
     const until = today.toISOString().split("T")[0];
 
-    const insights = await getInsights(
-      `act_${metaAccountId}`,
-      { level: "campaign", dateRange: { since, until }, timeIncrement: 1 },
-      metaAccountId,
-    );
+    const dbCampaigns = await db
+      .select({ id: campaigns.id, metaCampaignId: campaigns.metaCampaignId })
+      .from(campaigns)
+      .where(
+        and(
+          eq(campaigns.metaAdAccountId, dbAccountId),
+          isNotNull(campaigns.metaCampaignId),
+        ),
+      );
 
-    // TODO: `creativePerformance` rows are keyed by `creativeId`, but these insights
-    // are fetched at the campaign level, so there is no creative to attach them to.
-    // Persisting requires switching this fetch to level: "ad" and mapping each
-    // insight to its creative via the `ads` table (ad -> creativeId). Until that
-    // mapping is implemented, we only count the fetched insights here and do not
-    // persist them, so the sync log accurately reflects that the operation ran
-    // without silently dropping data into the wrong shape.
-    itemsSynced = insights.length;
+    for (const campaign of dbCampaigns) {
+      try {
+        const insights = await getInsights(
+          campaign.metaCampaignId!,
+          { level: "campaign", dateRange: { since, until }, timeIncrement: 1 },
+          metaAccountId,
+        );
+
+        for (const insight of insights) {
+          const leadCount = insight.actions
+            ?.find((a) => a.action_type === "lead")
+            ?.value;
+          const leadsNum = leadCount ? parseInt(leadCount, 10) : 0;
+          const spendNum = parseFloat(insight.spend) || 0;
+          const cplNum = leadsNum > 0 ? spendNum / leadsNum : 0;
+
+          await db
+            .insert(campaignInsights)
+            .values({
+              campaignId: campaign.id,
+              date: new Date(insight.date_start),
+              impressions: parseInt(insight.impressions, 10) || 0,
+              clicks: parseInt(insight.clicks, 10) || 0,
+              ctr: parseFloat(insight.ctr) || 0,
+              reach: parseInt(insight.reach, 10) || 0,
+              spend: spendNum,
+              leads: leadsNum,
+              cpl: cplNum,
+              cpc: parseFloat(insight.cpc) || 0,
+              cpm: parseFloat(insight.cpm) || 0,
+              frequency: parseFloat(insight.frequency) || 0,
+            })
+            .onConflictDoUpdate({
+              target: [campaignInsights.campaignId, campaignInsights.date],
+              set: {
+                impressions: parseInt(insight.impressions, 10) || 0,
+                clicks: parseInt(insight.clicks, 10) || 0,
+                ctr: parseFloat(insight.ctr) || 0,
+                reach: parseInt(insight.reach, 10) || 0,
+                spend: spendNum,
+                leads: leadsNum,
+                cpl: cplNum,
+                cpc: parseFloat(insight.cpc) || 0,
+                cpm: parseFloat(insight.cpm) || 0,
+                frequency: parseFloat(insight.frequency) || 0,
+                updatedAt: new Date(),
+              },
+            });
+
+          itemsSynced++;
+        }
+      } catch (e: any) {
+        errors.push({ message: e.message, entity: `insights for campaign ${campaign.metaCampaignId}` });
+      }
+    }
   } catch (e: any) {
     errors.push({ message: e.message, entity: "insights sync" });
   }
