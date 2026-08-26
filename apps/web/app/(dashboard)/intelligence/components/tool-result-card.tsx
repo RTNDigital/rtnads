@@ -8,6 +8,7 @@ interface ToolResultCardProps {
   state: string;
   result?: unknown;
   errorText?: string;
+  onSendMessage?: (text: string) => void;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -22,6 +23,11 @@ const TOOL_LABELS: Record<string, string> = {
   updateCampaign: "Kampanya Güncellendi",
   generateAdCopy: "Ad Copy Oluşturuldu",
   publishCampaign: "Kampanya Yayınlandı",
+};
+
+const SELECTABLE_TOOLS: Record<string, { nameKey: string; localKey: string; sendPrefix: string }> = {
+  getCountries: { nameKey: "name", localKey: "nameLocal", sendPrefix: "Hedef ülkeler" },
+  getTreatmentCategories: { nameKey: "name", localKey: "nameLocal", sendPrefix: "Tedavi kategorileri" },
 };
 
 function formatToolResult(toolName: string, result: unknown): string {
@@ -57,6 +63,89 @@ function formatToolResult(toolName: string, result: unknown): string {
   }
 }
 
+function SelectableChipList({
+  items,
+  config,
+  onSend,
+}: {
+  items: Array<Record<string, unknown>>;
+  config: { nameKey: string; localKey: string; sendPrefix: string };
+  onSend: (text: string) => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sent, setSent] = useState(false);
+
+  const names = items
+    .map((item) => String(item[config.localKey] || item[config.nameKey] || ""))
+    .filter(Boolean);
+
+  const toggle = (name: string) => {
+    if (sent) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const handleSend = () => {
+    if (selected.size === 0) return;
+    const selectedNames = names.filter((n) => selected.has(n));
+    onSend(`${config.sendPrefix}: ${selectedNames.join(", ")}`);
+    setSent(true);
+  };
+
+  if (sent) {
+    const selectedNames = names.filter((n) => selected.has(n));
+    return (
+      <div className="mt-1 space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {selectedNames.map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center rounded-full border border-green-300 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{selectedNames.length} seçim gönderildi</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1 space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {names.map((name) => (
+          <button
+            key={name}
+            type="button"
+            onClick={() => toggle(name)}
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
+              selected.has(name)
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-foreground hover:bg-muted"
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      {selected.size > 0 && (
+        <button
+          type="button"
+          onClick={handleSend}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+        >
+          {selected.size} seçimi gönder
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ActionResultCard({ label, result }: { label: string; result: unknown }) {
   const data = result as Record<string, unknown> | null;
   const isError = data && "error" in data;
@@ -78,10 +167,12 @@ function ActionResultCard({ label, result }: { label: string; result: unknown })
   );
 }
 
-export function ToolResultCard({ toolName, state, result, errorText }: ToolResultCardProps) {
+export function ToolResultCard({ toolName, state, result, errorText, onSendMessage }: ToolResultCardProps) {
   const [expanded, setExpanded] = useState(false);
   const label = TOOL_LABELS[toolName] ?? toolName;
   const isAction = isActionTool(toolName);
+  const selectableConfig = SELECTABLE_TOOLS[toolName];
+  const isSelectable = Boolean(selectableConfig) && Array.isArray(result) && Boolean(onSendMessage);
 
   if (state === "output-error") {
     return (
@@ -109,7 +200,15 @@ export function ToolResultCard({ toolName, state, result, errorText }: ToolResul
         </button>
         {expanded && result != null && (
           <div className="mt-1 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            {formatToolResult(toolName, result)}
+            {isSelectable ? (
+              <SelectableChipList
+                items={result as Array<Record<string, unknown>>}
+                config={selectableConfig!}
+                onSend={onSendMessage!}
+              />
+            ) : (
+              formatToolResult(toolName, result)
+            )}
           </div>
         )}
       </div>

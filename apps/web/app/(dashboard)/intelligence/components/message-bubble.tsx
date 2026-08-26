@@ -14,6 +14,7 @@ interface MessageBubbleProps {
   onToolApprove?: (toolCallId: string) => void;
   onToolReject?: (toolCallId: string) => void;
   isToolExecuting?: boolean;
+  onSendMessage?: (text: string) => void;
 }
 
 export function MessageBubble({
@@ -22,6 +23,7 @@ export function MessageBubble({
   onToolApprove,
   onToolReject,
   isToolExecuting,
+  onSendMessage,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
@@ -68,6 +70,7 @@ export function MessageBubble({
                 state={part.state}
                 result={"output" in part ? part.output : undefined}
                 errorText={"errorText" in part ? part.errorText : undefined}
+                onSendMessage={onSendMessage}
               />
             );
           }

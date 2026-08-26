@@ -10,6 +10,7 @@ interface MessageListProps {
   onToolApprove?: (toolCallId: string) => void;
   onToolReject?: (toolCallId: string) => void;
   isToolExecuting?: boolean;
+  onSendMessage?: (text: string) => void;
 }
 
 export function MessageList({
@@ -18,6 +19,7 @@ export function MessageList({
   onToolApprove,
   onToolReject,
   isToolExecuting,
+  onSendMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +38,7 @@ export function MessageList({
             onToolApprove={onToolApprove}
             onToolReject={onToolReject}
             isToolExecuting={isToolExecuting}
+            onSendMessage={onSendMessage}
           />
         ))}
         <div ref={bottomRef} />

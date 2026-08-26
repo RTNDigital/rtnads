@@ -153,6 +153,7 @@ export default function IntelligencePage() {
             onToolApprove={handleToolApprove}
             onToolReject={handleToolReject}
             isToolExecuting={isToolExecuting}
+            onSendMessage={handleSend}
           />
         ) : (
           <SuggestionCards onSelect={(prompt) => handleSend(prompt)} />
