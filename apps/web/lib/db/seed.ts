@@ -47,6 +47,15 @@ const countriesSeed = [
   { code: "HR", name: "Croatia", nameLocal: "Hrvatska", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
   { code: "BA", name: "Bosnia and Herzegovina", nameLocal: "Bosna i Hercegovina", continent: "europe" as const, language: "en", languageName: "English", currency: "BAM", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: true, isEU: false },
   { code: "KG", name: "Kyrgyzstan", nameLocal: "Кыргызстан", continent: "asia" as const, language: "ru", languageName: "Russian", currency: "KGS", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: true, isEU: false },
+  { code: "PT", name: "Portugal", nameLocal: "Portugal", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "SK", name: "Slovakia", nameLocal: "Slovensko", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "SI", name: "Slovenia", nameLocal: "Slovenija", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "LT", name: "Lithuania", nameLocal: "Lietuva", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "LV", name: "Latvia", nameLocal: "Latvija", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "EE", name: "Estonia", nameLocal: "Eesti", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "LU", name: "Luxembourg", nameLocal: "Luxembourg", continent: "europe" as const, language: "fr", languageName: "French", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "MT", name: "Malta", nameLocal: "Malta", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
+  { code: "CY", name: "Cyprus", nameLocal: "Κύπρος", continent: "europe" as const, language: "en", languageName: "English", currency: "EUR", isEk53: false, incentiveRate: 50, hasWhatsAppOptimization: false, isEU: true },
 ];
 
 const treatmentCategoriesSeed = [
