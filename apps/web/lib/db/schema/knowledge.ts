@@ -43,3 +43,30 @@ export const leadFormTemplates = pgTable("lead_form_templates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const countries = pgTable("countries", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  nameLocal: text("name_local"),
+  continent: text("continent", {
+    enum: ["europe", "asia", "africa", "americas", "oceania", "middle_east"],
+  }).notNull(),
+  language: text("language").notNull(),
+  languageName: text("language_name").notNull(),
+  currency: text("currency").default("USD"),
+  isEk53: boolean("is_ek53").default(false).notNull(),
+  incentiveRate: integer("incentive_rate").default(50).notNull(),
+  hasWhatsAppOptimization: boolean("has_whatsapp_optimization").default(true).notNull(),
+  isEU: boolean("is_eu").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const treatmentCategories = pgTable("treatment_categories", {
+  slug: text("slug").primaryKey(),
+  name: text("name").notNull(),
+  parentSlug: text("parent_slug"),
+  description: text("description"),
+  keywords: jsonb("keywords").$type<string[]>().default([]),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
