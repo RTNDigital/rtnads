@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const [client] = await db.select().from(clients).where(eq(clients.id, body.clientId)).limit(1);
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  const policyResults = checkCampaignPolicies({
+  const policyResults = await checkCampaignPolicies({
     adCopy: body.adCopy,
     headline: body.headline,
     description: body.description,

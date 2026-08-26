@@ -1,4 +1,5 @@
 import type { ClientType } from "@rtnads/shared";
+import { getEk53Countries, getEUCountries } from "@/lib/knowledge";
 
 export interface PolicyCheckResult {
   level: "blocker" | "warning" | "info";
@@ -18,28 +19,13 @@ export interface CampaignDraft {
   hasDisclaimer?: boolean;
 }
 
-const EK53_COUNTRIES = [
-  "Germany", "United States", "Azerbaijan", "United Arab Emirates",
-  "United Kingdom", "France", "Ireland", "Spain", "Canada", "Qatar",
-  "Kazakhstan", "Egypt", "Nigeria", "Norway", "Uzbekistan", "Poland",
-  "Romania", "Russia", "Senegal", "Saudi Arabia",
-];
-
 const TURKISH_CHARS = /[çğıöşüÇĞİÖŞÜ]/;
 const TURKISH_WORDS = /\b(ve|bir|ile|için|olan|bu|da|de|den|dan|ne|nasıl|kadar|gibi|daha|çok|iyi|tedavi|sağlık|turizm|estetik|ameliyat)\b/i;
 
-const EU_COUNTRIES = [
-  "Germany", "France", "Ireland", "Spain", "Poland", "Romania",
-  "Italy", "Netherlands", "Belgium", "Austria", "Sweden", "Denmark",
-  "Finland", "Portugal", "Greece", "Czech Republic", "Hungary",
-  "Slovakia", "Slovenia", "Croatia", "Bulgaria", "Lithuania",
-  "Latvia", "Estonia", "Luxembourg", "Malta", "Cyprus",
-];
-
-export function checkCampaignPolicies(
+export async function checkCampaignPolicies(
   draft: CampaignDraft,
   clientType: ClientType,
-): PolicyCheckResult[] {
+): Promise<PolicyCheckResult[]> {
   const results: PolicyCheckResult[] = [];
   const allText = [draft.adCopy, draft.headline, draft.description]
     .filter(Boolean)
@@ -56,7 +42,9 @@ export function checkCampaignPolicies(
     });
   }
 
-  const ek53Count = draft.targetCountries.filter((c) => EK53_COUNTRIES.includes(c)).length;
+  const ek53Countries = await getEk53Countries();
+  const ek53Names = ek53Countries.map((c) => c.name);
+  const ek53Count = draft.targetCountries.filter((c) => ek53Names.includes(c)).length;
   const nonEk53Count = draft.targetCountries.length - ek53Count;
   if (draft.targetCountries.length > 0) {
     const rate = nonEk53Count === 0 ? 70 : ek53Count > 0 ? "50-70" : 50;
@@ -85,7 +73,9 @@ export function checkCampaignPolicies(
     });
   }
 
-  const targetsEurope = draft.targetCountries.some((c) => EU_COUNTRIES.includes(c));
+  const euCountries = await getEUCountries();
+  const euNames = euCountries.map((c) => c.name);
+  const targetsEurope = draft.targetCountries.some((c) => euNames.includes(c));
   if (targetsEurope && draft.adFormat === "whatsapp") {
     results.push({
       level: "warning",
