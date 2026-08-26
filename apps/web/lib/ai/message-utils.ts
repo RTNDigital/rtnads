@@ -25,17 +25,21 @@ export async function updateChatTitle(chatId: string, title: string): Promise<vo
 export async function upsertMessage(chatId: string, message: UIMessage): Promise<void> {
   const messageId = message.id || generateId();
 
-  await db
-    .insert(intelligenceMessages)
-    .values({
+  const [existing] = await db
+    .select({ id: intelligenceMessages.id, chatId: intelligenceMessages.chatId })
+    .from(intelligenceMessages)
+    .where(eq(intelligenceMessages.id, messageId))
+    .limit(1);
+
+  if (existing && existing.chatId !== chatId) return;
+
+  if (!existing) {
+    await db.insert(intelligenceMessages).values({
       id: messageId,
       chatId,
       role: message.role as "user" | "assistant",
-    })
-    .onConflictDoUpdate({
-      target: intelligenceMessages.id,
-      set: { chatId },
     });
+  }
 
   await db.delete(messageParts).where(eq(messageParts.messageId, messageId));
 
