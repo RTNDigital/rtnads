@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, jsonb, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, jsonb, integer, real, unique } from "drizzle-orm/pg-core";
 import { clients } from "./clients";
 
 export const metaAdAccounts = pgTable("meta_ad_accounts", {
@@ -163,3 +163,23 @@ export const syncLogs = pgTable("sync_logs", {
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 });
+
+export const campaignInsights = pgTable("campaign_insights", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "cascade" }).notNull(),
+  date: timestamp("date").notNull(),
+  impressions: integer("impressions").default(0).notNull(),
+  clicks: integer("clicks").default(0).notNull(),
+  ctr: real("ctr").default(0).notNull(),
+  reach: integer("reach").default(0).notNull(),
+  spend: real("spend").default(0).notNull(),
+  leads: integer("leads").default(0).notNull(),
+  cpl: real("cpl").default(0).notNull(),
+  cpc: real("cpc").default(0).notNull(),
+  cpm: real("cpm").default(0).notNull(),
+  frequency: real("frequency").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("campaign_insights_campaign_date_unique").on(t.campaignId, t.date),
+]);
