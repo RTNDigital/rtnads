@@ -33,7 +33,7 @@ export default async function CreativesPage() {
 
       {allCreatives.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
-          No creatives yet. Creatives will appear here after syncing from Meta.
+          Henuz gorsel yok. Meta'dan senkronize edildikten sonra burada gorunecek.
         </p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

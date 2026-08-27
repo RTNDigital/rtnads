@@ -71,7 +71,7 @@ export default async function ClientsPage() {
           {allClients.length === 0 && (
             <TableRow>
               <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No clients yet. Add your first client to get started.
+                Henuz musteri yok. Baslamak icin ilk musterinizi ekleyin.
               </TableCell>
             </TableRow>
           )}

@@ -38,7 +38,8 @@ export default async function LeadsPage() {
     .innerJoin(clients, eq(leads.clientId, clients.id))
     .leftJoin(campaigns, eq(leads.campaignId, campaigns.id))
     .where(eq(clients.orgId, orgId))
-    .orderBy(leads.createdAt);
+    .orderBy(leads.createdAt)
+    .then((rows) => rows.reverse());
 
   return (
     <div className="flex flex-col gap-6">
@@ -79,7 +80,7 @@ export default async function LeadsPage() {
           {allLeads.length === 0 && (
             <TableRow>
               <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                No leads yet. Leads will appear here when synced from Meta or received via webhook.
+                Henuz lead yok. Meta'dan senkronize edildikten veya webhook ile alindiktan sonra burada gorunecek.
               </TableCell>
             </TableRow>
           )}

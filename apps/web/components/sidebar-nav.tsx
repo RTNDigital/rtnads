@@ -4,16 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@rtnads/shared";
+import {
+  LayoutDashboard, Users, Megaphone, Image,
+  Contact, Brain, BookOpen, Settings,
+} from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: "LayoutDashboard" },
-  { label: "Clients", href: "/clients", icon: "Users" },
-  { label: "Campaigns", href: "/campaigns", icon: "Megaphone" },
-  { label: "Creatives", href: "/creatives", icon: "Image" },
-  { label: "Leads", href: "/leads", icon: "Contact" },
-  { label: "Intelligence", href: "/intelligence", icon: "Brain" },
-  { label: "Knowledge", href: "/knowledge", icon: "BookOpen" },
-  { label: "Settings", href: "/settings", icon: "Settings" },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Clients", href: "/clients", icon: Users },
+  { label: "Campaigns", href: "/campaigns", icon: Megaphone },
+  { label: "Creatives", href: "/creatives", icon: Image },
+  { label: "Leads", href: "/leads", icon: Contact },
+  { label: "Intelligence", href: "/intelligence", icon: Brain },
+  { label: "Knowledge", href: "/knowledge", icon: BookOpen },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function SidebarNav() {
@@ -31,6 +35,7 @@ export function SidebarNav() {
           const isActive = item.href === "/"
             ? pathname === "/"
             : pathname.startsWith(item.href);
+          const Icon = item.icon;
 
           return (
             <Link
@@ -43,6 +48,7 @@ export function SidebarNav() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
+              <Icon className="h-4 w-4 shrink-0" />
               {item.label}
             </Link>
           );

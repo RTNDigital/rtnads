@@ -39,7 +39,8 @@ export default async function CampaignsPage() {
     .from(campaigns)
     .innerJoin(clients, eq(campaigns.clientId, clients.id))
     .where(eq(clients.orgId, orgId))
-    .orderBy(campaigns.createdAt);
+    .orderBy(campaigns.createdAt)
+    .then((rows) => rows.reverse());
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,9 +73,16 @@ export default async function CampaignsPage() {
               </TableCell>
               <TableCell>{campaign.clientName}</TableCell>
               <TableCell>
-                <Badge className={statusColors[campaign.status] || ""}>
-                  {campaign.status.replace("_", " ")}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge className={statusColors[campaign.status] || ""}>
+                    {campaign.status.replace("_", " ")}
+                  </Badge>
+                  {campaign.metaStatus && (
+                    <Badge variant="outline" className="text-xs">
+                      {campaign.metaStatus}
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell>{campaign.objective || "—"}</TableCell>
               <TableCell>
@@ -88,7 +96,7 @@ export default async function CampaignsPage() {
           {allCampaigns.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                No campaigns yet. Create your first campaign or sync from Meta.
+                Henuz kampanya yok. Yeni kampanya olusturun veya Meta'dan senkronize edin.
               </TableCell>
             </TableRow>
           )}
