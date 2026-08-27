@@ -10,6 +10,7 @@ import {
   getCategoryTree,
   getTemplatesForCategory,
   getDisclaimer,
+  getActiveRules,
 } from "@/lib/knowledge";
 import { checkCampaignPolicies } from "@/lib/meta/policy-checker";
 import type { ClientType } from "@rtnads/shared";
@@ -63,6 +64,21 @@ export const knowledgeTools = {
       const text = await getDisclaimer(locale);
       if (!text) return { found: false, locale };
       return { found: true, locale, text };
+    },
+  }),
+
+  getPlatformRules: tool({
+    description: "Get platform-specific advertising rules and policies from the knowledge base. Returns rules for Meta or Google ads, optionally filtered by rule type (e.g. 'targeting', 'content', 'budget', 'compliance').",
+    inputSchema: z.object({
+      platform: z.enum(["meta", "google"]).optional().default("meta").describe("Ad platform"),
+      ruleType: z.string().optional().describe("Filter by rule type: targeting, content, budget, compliance"),
+    }),
+    execute: async ({ platform, ruleType }) => {
+      const rules = await getActiveRules(platform);
+      if (ruleType) {
+        return rules.filter((r) => r.ruleType === ruleType);
+      }
+      return rules;
     },
   }),
 
