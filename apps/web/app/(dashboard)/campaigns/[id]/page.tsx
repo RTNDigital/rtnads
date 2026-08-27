@@ -10,6 +10,9 @@ import {
   TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CampaignActions } from "./components/campaign-actions";
+import { CampaignEditForm } from "./components/campaign-edit-form";
+import { CampaignInsightsSummary } from "./components/campaign-insights-summary";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -45,6 +48,7 @@ export default async function CampaignDetailPage({
     status: campaigns.approvalStatus,
     metaStatus: campaigns.metaStatus,
     metaCampaignId: campaigns.metaCampaignId,
+    metaAdAccountId: campaigns.metaAdAccountId,
     objective: campaigns.objective,
     dailyBudget: campaigns.dailyBudget,
     lifetimeBudget: campaigns.lifetimeBudget,
@@ -53,6 +57,9 @@ export default async function CampaignDetailPage({
     targetCountries: campaigns.targetCountries,
     startDate: campaigns.startDate,
     endDate: campaigns.endDate,
+    headline: campaigns.headline,
+    description: campaigns.description,
+    adCopy: campaigns.adCopy,
     clientName: clients.name,
     clientType: clients.type,
     createdAt: campaigns.createdAt,
@@ -81,7 +88,7 @@ export default async function CampaignDetailPage({
           <h1 className="text-2xl font-bold">{campaign.name}</h1>
           <p className="text-sm text-muted-foreground">{campaign.clientName} &middot; {campaign.treatmentCategory || "No category"}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <Badge className={statusColors[campaign.status] || ""}>
             {campaign.status.replace("_", " ")}
           </Badge>
@@ -91,35 +98,83 @@ export default async function CampaignDetailPage({
         </div>
       </div>
 
+      <CampaignActions
+        campaignId={campaign.id}
+        approvalStatus={campaign.status}
+        metaStatus={campaign.metaStatus}
+        metaCampaignId={campaign.metaCampaignId}
+        hasAdAccount={!!campaign.metaAdAccountId}
+      />
+
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="performance">Performans</TabsTrigger>
           <TabsTrigger value="adsets">Ad Sets ({campaignAdSets.length})</TabsTrigger>
           <TabsTrigger value="ads">Ads ({campaignAds.length})</TabsTrigger>
           <TabsTrigger value="leads">Leads ({campaignLeads.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Objective</p>
-              <p className="font-semibold">{campaign.objective || "—"}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Daily Budget</p>
-              <p className="font-semibold">{campaign.dailyBudget ? `${campaign.budgetCurrency} ${campaign.dailyBudget}` : "—"}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Countries</p>
-              <p className="font-semibold">{(campaign.targetCountries as string[] || []).length} countries</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Period</p>
-              <p className="font-semibold">
-                {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : "—"}
-                {campaign.endDate ? ` — ${new Date(campaign.endDate).toLocaleDateString()}` : ""}
-              </p>
-            </Card>
+          <div className="flex flex-col gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Objective</p>
+                <p className="font-semibold">{campaign.objective || "—"}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Daily Budget</p>
+                <p className="font-semibold">{campaign.dailyBudget ? `${campaign.budgetCurrency} ${campaign.dailyBudget}` : "—"}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Countries</p>
+                <p className="font-semibold">{(campaign.targetCountries as string[] || []).length} countries</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-muted-foreground">Period</p>
+                <p className="font-semibold">
+                  {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : "—"}
+                  {campaign.endDate ? ` — ${new Date(campaign.endDate).toLocaleDateString()}` : ""}
+                </p>
+              </Card>
+            </div>
+
+            {(campaign.headline || campaign.description || campaign.adCopy) && (
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">Ad Copy</h3>
+                <div className="grid gap-2 text-sm">
+                  {campaign.headline && (
+                    <div><span className="text-muted-foreground">Headline:</span> <span className="font-medium">{campaign.headline}</span></div>
+                  )}
+                  {campaign.description && (
+                    <div><span className="text-muted-foreground">Description:</span> <span>{campaign.description}</span></div>
+                  )}
+                  {campaign.adCopy && (
+                    <div><span className="text-muted-foreground">Primary Text:</span> <p className="mt-1 whitespace-pre-wrap">{campaign.adCopy}</p></div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <CampaignEditForm
+              campaignId={campaign.id}
+              initialData={{
+                name: campaign.name,
+                dailyBudget: campaign.dailyBudget,
+                budgetCurrency: campaign.budgetCurrency,
+                targetCountries: (campaign.targetCountries as string[]) || [],
+                headline: campaign.headline,
+                description: campaign.description,
+                adCopy: campaign.adCopy,
+              }}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <div className="mt-4">
+            <h3 className="font-semibold mb-3">Son 7 Gün</h3>
+            <CampaignInsightsSummary campaignId={campaign.id} />
           </div>
         </TabsContent>
 

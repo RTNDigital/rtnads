@@ -26,7 +26,7 @@ const ALL_COUNTRIES = [
   "Italy", "Netherlands", "Belgium", "Austria", "Sweden", "Denmark",
   "Finland", "Portugal", "Greece", "Czech Republic", "Hungary",
   "Australia", "Japan", "South Korea", "Brazil", "Mexico", "India",
-  "China", "Turkey", "Israel", "South Africa",
+  "China", "Israel", "South Africa",
 ].sort();
 
 const OBJECTIVES = [
