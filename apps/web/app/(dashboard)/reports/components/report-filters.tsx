@@ -49,7 +49,9 @@ export function ReportFilters({
         onValueChange={(v) => v && updateParam("clientId", v)}
       >
         <SelectTrigger className="w-[220px]">
-          <SelectValue placeholder="Müşteri seçin" />
+          <SelectValue placeholder="Müşteri seçin">
+            {clients.find((c) => c.id === selectedClientId)?.name ?? "Müşteri seçin"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {clients.map((c) => (
@@ -65,7 +67,9 @@ export function ReportFilters({
         onValueChange={(v) => v && updateParam("period", v)}
       >
         <SelectTrigger className="w-[160px]">
-          <SelectValue />
+          <SelectValue>
+            {periods.find((p) => p.value === selectedPeriod)?.label ?? "Dönem"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {periods.map((p) => (
