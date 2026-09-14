@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ImageIcon, Film, LayoutGrid, Upload, X } from "lucide-react";
+import { ImageIcon, Film, LayoutGrid, Upload, X, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface Client { id: string; name: string; type: string; }
 interface PolicyResult { level: string; code: string; message: string; field?: string; }
@@ -94,6 +95,7 @@ const PLACEMENT_GROUPS: PlacementGroup[] = [
   {
     key: "in_stream",
     label: "Yayın İçi (In-Stream)",
+    defaultExcluded: true,
     placements: [
       { key: "instagram_reels_overlay", label: "Reels yayın içi reklamlar" },
       { key: "facebook_instream_video", label: "Facebook yayın içi video" },
@@ -167,6 +169,32 @@ export default function NewCampaignPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const validateStep = (currentStep: number): boolean => {
+    const errors: Record<string, string> = {};
+    if (currentStep === 0) {
+      if (!form.name.trim()) errors.name = "Kampanya adı zorunlu";
+      if (!form.clientId) errors.clientId = "Müşteri seçimi zorunlu";
+    }
+    if (currentStep === 1) {
+      if (form.targetCountries.length === 0) errors.targetCountries = "En az bir ülke seçin";
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const goToStep = (target: number) => {
+    if (target < step) {
+      setValidationErrors({});
+      setStep(target);
+      return;
+    }
+    for (let i = step; i < target; i++) {
+      if (!validateStep(i)) return;
+    }
+    setStep(target);
+  };
 
   useEffect(() => {
     fetch("/api/clients").then((r) => r.json()).then(setClients);
@@ -273,24 +301,38 @@ export default function NewCampaignPage() {
 
       <div className="flex gap-2">
         {STEPS.map((s, i) => (
-          <Badge key={s} className={i === step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}>
-            {i + 1}. {s}
-          </Badge>
+          <button key={s} type="button" onClick={() => goToStep(i)}>
+            <Badge className={`cursor-pointer transition-colors ${i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-primary/20 text-primary hover:bg-primary/30" : "bg-muted text-muted-foreground"}`}>
+              {i + 1}. {s}
+            </Badge>
+          </button>
         ))}
       </div>
 
       {step === 0 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Campaign Name</Label>
-            <Input value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="e.g. Rhinoplasty DE Q1 2026" />
+            <Label>Campaign Name <span className="text-red-500">*</span></Label>
+            <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); setValidationErrors((v) => ({ ...v, name: "" })); }} placeholder="e.g. Rhinoplasty DE Q1 2026" className={validationErrors.name ? "border-red-500" : ""} />
+            {validationErrors.name && <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>}
           </div>
           <div>
-            <Label>Client</Label>
-            <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.clientId} onChange={(e) => updateField("clientId", e.target.value)}>
-              <option value="">Select client...</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
-            </select>
+            <Label>Client <span className="text-red-500">*</span></Label>
+            {clients.length === 0 ? (
+              <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-3">
+                <span className="text-sm text-muted-foreground">Henüz müşteri yok.</span>
+                <Link href="/clients/new" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                  <Plus className="h-3.5 w-3.5" />
+                  Müşteri ekle
+                </Link>
+              </div>
+            ) : (
+              <select className={`w-full rounded-md border px-3 py-2 text-sm ${validationErrors.clientId ? "border-red-500" : ""}`} value={form.clientId} onChange={(e) => { updateField("clientId", e.target.value); setValidationErrors((v) => ({ ...v, clientId: "" })); }}>
+                <option value="">Müşteri seçin...</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
+              </select>
+            )}
+            {validationErrors.clientId && <p className="text-xs text-red-500 mt-1">{validationErrors.clientId}</p>}
           </div>
           <div>
             <Label>Objective</Label>
@@ -368,7 +410,7 @@ export default function NewCampaignPage() {
           <div>
             <Label className="mb-3 block">Yerleşim Hariç Tutma (Placements)</Label>
             <p className="text-xs text-muted-foreground mb-3">
-              Hariç tutulan yerleşimlerde reklamınız gösterilmez. Audience Network varsayılan olarak hariç tutulur.
+              Hariç tutulan yerleşimlerde reklamınız gösterilmez. Audience Network ve Yayın İçi (In-Stream) varsayılan olarak hariç tutulur.
             </p>
             <div className="flex flex-col gap-1 rounded-lg border divide-y">
               {PLACEMENT_GROUPS.map((group) => {
@@ -573,14 +615,18 @@ export default function NewCampaignPage() {
       {step === 4 && (
         <Card className="p-6 flex flex-col gap-4">
           <h2 className="font-semibold text-lg">Kampanya Özeti</h2>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Ad:</span><span>{form.name || "—"}</span>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+            <span className="text-muted-foreground">Ad:</span><span className="font-medium">{form.name || "—"}</span>
+            <span className="text-muted-foreground">Müşteri:</span><span>{clients.find((c) => c.id === form.clientId)?.name || "—"}</span>
             <span className="text-muted-foreground">Hedef:</span><span>{OBJECTIVES.find((o) => o.value === form.objective)?.label}</span>
+            <span className="text-muted-foreground">Tedavi:</span><span>{form.treatmentCategory || "—"}</span>
             <span className="text-muted-foreground">Ülkeler:</span><span>{form.targetCountries.join(", ") || "—"}</span>
             <span className="text-muted-foreground">Bütçe:</span><span>{form.dailyBudget ? `${form.budgetCurrency} ${form.dailyBudget}/gün` : form.lifetimeBudget ? `${form.budgetCurrency} ${form.lifetimeBudget} toplam` : "—"}</span>
+            <span className="text-muted-foreground">Tarih:</span><span>{form.startDate && form.endDate ? `${form.startDate} → ${form.endDate}` : form.startDate || "—"}</span>
             <span className="text-muted-foreground">Format:</span><span>{AD_FORMATS.find((f) => f.value === form.adFormat)?.label}</span>
             <span className="text-muted-foreground">Medya:</span><span>{MEDIA_TYPES.find((m) => m.value === form.mediaType)?.label} ({form.mediaFiles.length} dosya)</span>
             <span className="text-muted-foreground">CTA:</span><span>{CTA_OPTIONS.find((c) => c.value === form.ctaType)?.label}</span>
+            <span className="text-muted-foreground">Hedef URL:</span><span className="truncate">{form.destinationUrl || "—"}</span>
             <span className="text-muted-foreground">Teşvik:</span><span>{incentiveRate ? `${incentiveRate}%` : "—"}</span>
             <span className="text-muted-foreground">Hariç tutulan:</span>
             <span>{form.excludedPlacements.length > 0
@@ -591,6 +637,13 @@ export default function NewCampaignPage() {
               : "Yok"
             }</span>
           </div>
+          {(form.headline || form.adCopy) && (
+            <div className="mt-2 rounded-lg border p-4 text-sm">
+              {form.headline && <p className="font-semibold">{form.headline}</p>}
+              {form.adCopy && <p className="text-muted-foreground mt-1 whitespace-pre-line">{form.adCopy}</p>}
+              {form.description && <p className="text-xs text-muted-foreground mt-1">{form.description}</p>}
+            </div>
+          )}
           {form.mediaPreviews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto py-2">
               {form.mediaPreviews.map((preview, i) => (
@@ -612,11 +665,11 @@ export default function NewCampaignPage() {
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+        <Button variant="outline" onClick={() => { setValidationErrors({}); setStep((s) => Math.max(0, s - 1)); }} disabled={step === 0}>
           Previous
         </Button>
         {step < 4 ? (
-          <Button onClick={() => setStep((s) => s + 1)}>
+          <Button onClick={() => { if (validateStep(step)) setStep((s) => s + 1); }}>
             Next
           </Button>
         ) : (
