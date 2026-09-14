@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { campaigns, adSets, ads, leads, clients } from "@/lib/db/schema";
+import { campaigns, adSets, ads, leads, clients, creatives } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { eq, and, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -75,7 +75,19 @@ export default async function CampaignDetailPage({
 
   const adSetIds = campaignAdSets.map((s) => s.id);
   const campaignAds = adSetIds.length > 0
-    ? await db.select().from(ads).where(inArray(ads.adSetId, adSetIds))
+    ? await db
+        .select({
+          id: ads.id,
+          metaAdId: ads.metaAdId,
+          status: ads.status,
+          createdAt: ads.createdAt,
+          adSetId: ads.adSetId,
+          creativeThumbnail: creatives.thumbnailUrl,
+          creativeType: creatives.type,
+        })
+        .from(ads)
+        .leftJoin(creatives, eq(ads.creativeId, creatives.id))
+        .where(inArray(ads.adSetId, adSetIds))
     : [];
 
   const campaignLeads = await db.select().from(leads)
@@ -214,6 +226,7 @@ export default async function CampaignDetailPage({
           <Table className="mt-4">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">Preview</TableHead>
                 <TableHead>Ad ID</TableHead>
                 <TableHead>Meta ID</TableHead>
                 <TableHead>Status</TableHead>
@@ -223,6 +236,15 @@ export default async function CampaignDetailPage({
             <TableBody>
               {campaignAds.map((ad) => (
                 <TableRow key={ad.id}>
+                  <TableCell>
+                    <div className="w-12 h-12 rounded bg-muted flex items-center justify-center overflow-hidden">
+                      {ad.creativeThumbnail ? (
+                        <img src={ad.creativeThumbnail} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">{ad.creativeType || "—"}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{ad.id.slice(0, 8)}</TableCell>
                   <TableCell>{ad.metaAdId || "—"}</TableCell>
                   <TableCell>
@@ -233,7 +255,7 @@ export default async function CampaignDetailPage({
               ))}
               {campaignAds.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No ads yet.
                   </TableCell>
                 </TableRow>

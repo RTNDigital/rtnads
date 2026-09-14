@@ -215,6 +215,64 @@ export async function incrementalCampaignSync(
         },
       });
       itemsSynced++;
+
+      try {
+        const [parentCampaign] = await db.select({ id: campaigns.id })
+          .from(campaigns)
+          .where(eq(campaigns.metaCampaignId, mc.id))
+          .limit(1);
+        if (!parentCampaign) continue;
+
+        const metaAdSets = await listAdSets(mc.id, metaAccountId);
+        for (const mas of metaAdSets) {
+          await db.insert(adSets).values({
+            campaignId: parentCampaign.id,
+            metaAdsetId: mas.id,
+            name: mas.name,
+            targeting: mas.targeting,
+            optimizationGoal: mas.optimization_goal,
+            bidStrategy: mas.bid_strategy,
+            status: mas.effective_status === "ACTIVE" ? "active" : "paused",
+          }).onConflictDoUpdate({
+            target: adSets.metaAdsetId,
+            set: {
+              name: mas.name,
+              targeting: mas.targeting,
+              status: mas.effective_status === "ACTIVE" ? "active" : "paused",
+              updatedAt: new Date(),
+            },
+          });
+          itemsSynced++;
+
+          try {
+            const [parentAdSet] = await db.select({ id: adSets.id })
+              .from(adSets)
+              .where(eq(adSets.metaAdsetId, mas.id))
+              .limit(1);
+            if (!parentAdSet) continue;
+
+            const metaAds = await listAds(mas.id, metaAccountId);
+            for (const ma of metaAds) {
+              await db.insert(ads).values({
+                adSetId: parentAdSet.id,
+                metaAdId: ma.id,
+                status: ma.effective_status === "ACTIVE" ? "active" : "paused",
+              }).onConflictDoUpdate({
+                target: ads.metaAdId,
+                set: {
+                  status: ma.effective_status === "ACTIVE" ? "active" : "paused",
+                  updatedAt: new Date(),
+                },
+              });
+              itemsSynced++;
+            }
+          } catch (e: any) {
+            errors.push({ message: e.message, entity: `ads for adset ${mas.id}` });
+          }
+        }
+      } catch (e: any) {
+        errors.push({ message: e.message, entity: `adsets for campaign ${mc.id}` });
+      }
     }
 
     await db.update(metaAdAccounts).set({ lastSyncedAt: new Date() }).where(eq(metaAdAccounts.id, dbAccountId));
