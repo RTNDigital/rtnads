@@ -61,6 +61,75 @@ const CTA_OPTIONS = [
   { value: "APPLY_NOW", label: "Apply Now" },
 ];
 
+interface PlacementGroup {
+  key: string;
+  label: string;
+  placements: { key: string; label: string }[];
+  defaultExcluded?: boolean;
+}
+
+const PLACEMENT_GROUPS: PlacementGroup[] = [
+  {
+    key: "feeds",
+    label: "Akışlar (Feeds)",
+    placements: [
+      { key: "facebook_feed", label: "Facebook Feed" },
+      { key: "instagram_feed", label: "Instagram Feed" },
+      { key: "facebook_marketplace", label: "Facebook Marketplace" },
+      { key: "facebook_video_feeds", label: "Facebook Video Feeds" },
+      { key: "instagram_explore", label: "Instagram Explore" },
+      { key: "instagram_profile_feed", label: "Instagram Profil" },
+    ],
+  },
+  {
+    key: "stories_reels",
+    label: "Hikayeler ve Reels",
+    placements: [
+      { key: "facebook_stories", label: "Facebook Stories" },
+      { key: "instagram_stories", label: "Instagram Stories" },
+      { key: "instagram_reels", label: "Instagram Reels" },
+      { key: "facebook_reels", label: "Facebook Reels" },
+    ],
+  },
+  {
+    key: "in_stream",
+    label: "Yayın İçi (In-Stream)",
+    placements: [
+      { key: "instagram_reels_overlay", label: "Reels yayın içi reklamlar" },
+      { key: "facebook_instream_video", label: "Facebook yayın içi video" },
+    ],
+  },
+  {
+    key: "search",
+    label: "Arama Sonuçları",
+    placements: [
+      { key: "facebook_search", label: "Facebook Arama" },
+      { key: "instagram_search", label: "Instagram Arama" },
+    ],
+  },
+  {
+    key: "messages",
+    label: "Pazarlama Mesajları",
+    placements: [
+      { key: "messenger_inbox", label: "Messenger Gelen Kutusu" },
+      { key: "messenger_stories", label: "Messenger Stories" },
+    ],
+  },
+  {
+    key: "audience_network",
+    label: "Uygulamalar ve Siteler (Audience Network)",
+    defaultExcluded: true,
+    placements: [
+      { key: "audience_network_classic", label: "Audience Network Klasik" },
+      { key: "audience_network_rewarded_video", label: "Audience Network Ödüllü Video" },
+    ],
+  },
+];
+
+const DEFAULT_EXCLUDED = PLACEMENT_GROUPS
+  .filter((g) => g.defaultExcluded)
+  .flatMap((g) => g.placements.map((p) => p.key));
+
 export default function NewCampaignPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -84,6 +153,7 @@ export default function NewCampaignPage() {
     adFormat: "lead_form",
     optimizationGoal: "LEAD_GENERATION",
     bidStrategy: "LOWEST_COST_WITHOUT_CAP",
+    excludedPlacements: [...DEFAULT_EXCLUDED] as string[],
     mediaType: "image" as "image" | "video" | "carousel",
     mediaFiles: [] as File[],
     mediaPreviews: [] as string[],
@@ -112,6 +182,26 @@ export default function NewCampaignPage() {
       targetCountries: prev.targetCountries.includes(country)
         ? prev.targetCountries.filter((c) => c !== country)
         : [...prev.targetCountries, country],
+    }));
+  };
+
+  const togglePlacement = (placementKey: string) => {
+    setForm((prev) => ({
+      ...prev,
+      excludedPlacements: prev.excludedPlacements.includes(placementKey)
+        ? prev.excludedPlacements.filter((p) => p !== placementKey)
+        : [...prev.excludedPlacements, placementKey],
+    }));
+  };
+
+  const togglePlacementGroup = (group: PlacementGroup) => {
+    const groupKeys = group.placements.map((p) => p.key);
+    const allExcluded = groupKeys.every((k) => form.excludedPlacements.includes(k));
+    setForm((prev) => ({
+      ...prev,
+      excludedPlacements: allExcluded
+        ? prev.excludedPlacements.filter((p) => !groupKeys.includes(p))
+        : [...new Set([...prev.excludedPlacements, ...groupKeys])],
     }));
   };
 
@@ -274,6 +364,76 @@ export default function NewCampaignPage() {
               <option value="BID_CAP">Bid Cap</option>
             </select>
           </div>
+
+          <div>
+            <Label className="mb-3 block">Yerleşim Hariç Tutma (Placements)</Label>
+            <p className="text-xs text-muted-foreground mb-3">
+              Hariç tutulan yerleşimlerde reklamınız gösterilmez. Audience Network varsayılan olarak hariç tutulur.
+            </p>
+            <div className="flex flex-col gap-1 rounded-lg border divide-y">
+              {PLACEMENT_GROUPS.map((group) => {
+                const groupKeys = group.placements.map((p) => p.key);
+                const excludedCount = groupKeys.filter((k) => form.excludedPlacements.includes(k)).length;
+                const allExcluded = excludedCount === groupKeys.length;
+                const someExcluded = excludedCount > 0 && !allExcluded;
+
+                return (
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => togglePlacementGroup(group)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/50 transition-colors"
+                    >
+                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${
+                        allExcluded
+                          ? "bg-red-500 border-red-500 text-white"
+                          : someExcluded
+                          ? "bg-amber-500 border-amber-500 text-white"
+                          : "bg-green-500 border-green-500 text-white"
+                      }`}>
+                        {allExcluded ? "✕" : someExcluded ? "−" : "✓"}
+                      </span>
+                      <span className="flex-1 text-left font-medium">{group.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {allExcluded ? "Hariç" : someExcluded ? `${excludedCount}/${groupKeys.length} hariç` : "Dahil"}
+                      </span>
+                    </button>
+                    <div className="pl-12 pr-4 pb-2 flex flex-wrap gap-1.5">
+                      {group.placements.map((p) => {
+                        const excluded = form.excludedPlacements.includes(p.key);
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => togglePlacement(p.key)}
+                            className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                              excluded
+                                ? "bg-red-50 text-red-700 border-red-200 line-through"
+                                : "bg-green-50 text-green-700 border-green-200"
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+              <span>
+                {form.excludedPlacements.length} yerleşim hariç tutuldu
+              </span>
+              <button
+                type="button"
+                onClick={() => updateField("excludedPlacements", [...DEFAULT_EXCLUDED])}
+                className="text-primary hover:underline"
+              >
+                Varsayılana sıfırla
+              </button>
+            </div>
+          </div>
         </Card>
       )}
 
@@ -422,6 +582,14 @@ export default function NewCampaignPage() {
             <span className="text-muted-foreground">Medya:</span><span>{MEDIA_TYPES.find((m) => m.value === form.mediaType)?.label} ({form.mediaFiles.length} dosya)</span>
             <span className="text-muted-foreground">CTA:</span><span>{CTA_OPTIONS.find((c) => c.value === form.ctaType)?.label}</span>
             <span className="text-muted-foreground">Teşvik:</span><span>{incentiveRate ? `${incentiveRate}%` : "—"}</span>
+            <span className="text-muted-foreground">Hariç tutulan:</span>
+            <span>{form.excludedPlacements.length > 0
+              ? PLACEMENT_GROUPS
+                  .filter((g) => g.placements.some((p) => form.excludedPlacements.includes(p.key)))
+                  .map((g) => g.label.split(" (")[0])
+                  .join(", ")
+              : "Yok"
+            }</span>
           </div>
           {form.mediaPreviews.length > 0 && (
             <div className="flex gap-2 overflow-x-auto py-2">
