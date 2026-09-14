@@ -5,6 +5,7 @@ export async function register() {
     const { metaAdAccounts } = await import("@/lib/db/schema");
     const { eq } = await import("drizzle-orm");
     const { incrementalCampaignSync, incrementalInsightsSync } = await import("@/lib/meta/sync");
+    const { evaluateAlerts } = await import("@/lib/alerts/evaluate");
 
     async function runSync(type: "campaigns" | "insights") {
       const accounts = await db
@@ -18,6 +19,11 @@ export async function register() {
             await incrementalInsightsSync(account.id, account.accountId);
           } else {
             await incrementalCampaignSync(account.id, account.accountId, account.clientId);
+          }
+
+          const alertCount = await evaluateAlerts(account.id);
+          if (alertCount > 0) {
+            console.log(`[cron] ${alertCount} alerts generated for ${account.accountId}`);
           }
         } catch (e) {
           console.error(`[cron] ${type} sync failed for ${account.accountId}:`, e);

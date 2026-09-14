@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { clients, campaigns, leads, campaignInsights } from "@/lib/db/schema";
+import { clients, campaigns, leads, campaignInsights, alerts } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql, desc, isNotNull } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCards } from "./components/stat-cards";
@@ -43,6 +43,7 @@ export default async function DashboardPage({
     leadTrend,
     spendTrend,
     countryDistribution,
+    criticalAlerts,
   ] = await Promise.all([
     // Active clients
     db
@@ -183,6 +184,25 @@ export default async function DashboardPage({
       .groupBy(leads.country)
       .orderBy(desc(sql`count(*)`))
       .limit(10),
+
+    // Critical alerts
+    db
+      .select({
+        id: alerts.id,
+        message: alerts.message,
+        severity: alerts.severity,
+        type: alerts.type,
+      })
+      .from(alerts)
+      .where(
+        and(
+          eq(alerts.orgId, orgId),
+          eq(alerts.severity, "critical"),
+          eq(alerts.isRead, false),
+        ),
+      )
+      .orderBy(desc(alerts.createdAt))
+      .limit(5),
   ]);
 
   const periodLabel = periodDays === 30 ? "Son 30 Gün" : "Son 7 Gün";
@@ -195,6 +215,21 @@ export default async function DashboardPage({
           <PeriodToggle />
         </Suspense>
       </div>
+
+      {criticalAlerts.length > 0 && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
+          <h3 className="mb-2 text-sm font-semibold text-red-800 dark:text-red-300">
+            Kritik Uyarılar ({criticalAlerts.length})
+          </h3>
+          <ul className="space-y-1">
+            {criticalAlerts.map((alert) => (
+              <li key={alert.id} className="text-sm text-red-700 dark:text-red-400">
+                {alert.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <StatCards
         activeClients={activeClientsResult.count}
