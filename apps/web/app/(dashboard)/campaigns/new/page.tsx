@@ -94,6 +94,7 @@ const PLACEMENT_GROUPS: PlacementGroup[] = [
   {
     key: "in_stream",
     label: "Yayın İçi (In-Stream)",
+    defaultExcluded: true,
     placements: [
       { key: "instagram_reels_overlay", label: "Reels yayın içi reklamlar" },
       { key: "facebook_instream_video", label: "Facebook yayın içi video" },
