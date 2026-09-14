@@ -4,13 +4,14 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recha
 
 interface LeadTrendChartProps {
   data: Array<{ date: string; count: number }>;
+  emptyMessage?: string;
 }
 
-export function LeadTrendChart({ data }: LeadTrendChartProps) {
+export function LeadTrendChart({ data, emptyMessage }: LeadTrendChartProps) {
   if (data.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-8">
-        Son 7 günde lead verisi yok.
+        {emptyMessage || "Lead verisi yok."}
       </p>
     );
   }
