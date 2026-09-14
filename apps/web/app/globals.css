@@ -128,3 +128,24 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  aside,
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+  .print\:block {
+    display: block !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .flex.h-screen {
+    display: block !important;
+  }
+  .flex-1.overflow-hidden {
+    overflow: visible !important;
+  }
+}

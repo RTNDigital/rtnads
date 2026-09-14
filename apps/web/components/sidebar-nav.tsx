@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { APP_NAME } from "@rtnads/shared";
 import {
   LayoutDashboard, Users, Megaphone, Image,
-  Contact, Brain, BookOpen, Settings,
+  Contact, Brain, BookOpen, FileBarChart, Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { label: "Campaigns", href: "/campaigns", icon: Megaphone },
   { label: "Creatives", href: "/creatives", icon: Image },
   { label: "Leads", href: "/leads", icon: Contact },
+  { label: "Raporlar", href: "/reports", icon: FileBarChart },
   { label: "Intelligence", href: "/intelligence", icon: Brain },
   { label: "Knowledge", href: "/knowledge", icon: BookOpen },
   { label: "Settings", href: "/settings", icon: Settings },
