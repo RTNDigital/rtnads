@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { clients, clientOnboardingChecks } from "@/lib/db/schema";
+import { clients, clientOnboardingChecks, metaAdAccounts, googleAdAccounts } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingChecklist } from "./onboarding";
 import { ONBOARDING_CHECKS } from "@/lib/constants/onboarding-checks";
+import { GoogleConnectButton } from "./google-connect-button";
 
 export default async function ClientDetailPage({
   params,
@@ -24,10 +25,20 @@ export default async function ClientDetailPage({
 
   if (!client) notFound();
 
-  const checks = await db
-    .select()
-    .from(clientOnboardingChecks)
-    .where(eq(clientOnboardingChecks.clientId, id));
+  const [checks, metaAccounts, googleAccounts] = await Promise.all([
+    db
+      .select()
+      .from(clientOnboardingChecks)
+      .where(eq(clientOnboardingChecks.clientId, id)),
+    db
+      .select({ id: metaAdAccounts.id, name: metaAdAccounts.name })
+      .from(metaAdAccounts)
+      .where(eq(metaAdAccounts.clientId, id)),
+    db
+      .select({ id: googleAdAccounts.id, name: googleAdAccounts.name, customerId: googleAdAccounts.customerId })
+      .from(googleAdAccounts)
+      .where(eq(googleAdAccounts.clientId, id)),
+  ]);
 
   const passedCount = checks.filter((c) => c.status === "pass").length;
   const totalCount = checks.length;
@@ -95,6 +106,34 @@ export default async function ClientDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm text-muted-foreground">Ad Platform Bağlantıları</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Meta Ads</span>
+            {metaAccounts.length > 0 ? (
+              <Badge className="bg-green-100 text-green-800">
+                Bağlı ({metaAccounts[0].name || "Account"})
+              </Badge>
+            ) : (
+              <Badge variant="outline">Bağlı değil</Badge>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Google Ads</span>
+            {googleAccounts.length > 0 ? (
+              <Badge className="bg-green-100 text-green-800">
+                Bağlı ({googleAccounts[0].customerId})
+              </Badge>
+            ) : (
+              <GoogleConnectButton clientId={client.id} />
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <OnboardingChecklist
         clientId={client.id}

@@ -6,3 +6,4 @@ export * from "./knowledge";
 export * from "./learning";
 export * from "./intelligence";
 export * from "./alerts";
+export * from "./google";

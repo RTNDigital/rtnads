@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, uuid, jsonb, integer, real, unique } from "drizzle-orm/pg-core";
 import { clients } from "./clients";
+import { googleAdAccounts } from "./google";
 
 export const metaAdAccounts = pgTable("meta_ad_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -22,7 +23,10 @@ export const campaigns = pgTable("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
   clientId: uuid("client_id").references(() => clients.id).notNull(),
   metaAdAccountId: uuid("meta_ad_account_id").references(() => metaAdAccounts.id),
+  googleAdAccountId: uuid("google_ad_account_id").references(() => googleAdAccounts.id),
   metaCampaignId: text("meta_campaign_id").unique(),
+  googleCampaignId: text("google_campaign_id").unique(),
+  platform: text("platform", { enum: ["meta", "google", "manual"] }).notNull().default("manual"),
   name: text("name").notNull(),
   campaignType: text("campaign_type", { enum: ["standard", "event"] }).notNull().default("standard"),
   objective: text("objective"),

@@ -27,6 +27,7 @@ export default async function CampaignsPage() {
     .select({
       id: campaigns.id,
       name: campaigns.name,
+      platform: campaigns.platform,
       status: campaigns.approvalStatus,
       metaStatus: campaigns.metaStatus,
       objective: campaigns.objective,
@@ -56,6 +57,7 @@ export default async function CampaignsPage() {
         <TableHeader>
           <TableRow>
             <TableHead>Campaign</TableHead>
+            <TableHead>Platform</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Objective</TableHead>
@@ -70,6 +72,11 @@ export default async function CampaignsPage() {
                 <Link href={`/campaigns/${campaign.id}`} className="font-medium hover:underline">
                   {campaign.name}
                 </Link>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs capitalize">
+                  {campaign.platform}
+                </Badge>
               </TableCell>
               <TableCell>{campaign.clientName}</TableCell>
               <TableCell>
@@ -95,7 +102,7 @@ export default async function CampaignsPage() {
           ))}
           {allCampaigns.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 Henuz kampanya yok. Yeni kampanya olusturun veya Meta'dan senkronize edin.
               </TableCell>
             </TableRow>
