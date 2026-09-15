@@ -28,18 +28,18 @@ export default async function ClientsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Clients</h1>
-        <Button render={<Link href="/clients/new">Add Client</Link>} />
+        <h1 className="text-2xl font-bold">Müşteriler</h1>
+        <Button render={<Link href="/clients/new">Müşteri Ekle</Link>} />
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Categories</TableHead>
-            <TableHead>Budget</TableHead>
-            <TableHead>Onboarding</TableHead>
+            <TableHead>Ad</TableHead>
+            <TableHead>Tür</TableHead>
+            <TableHead>Kategoriler</TableHead>
+            <TableHead>Bütçe</TableHead>
+            <TableHead>Başlangıç Durumu</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

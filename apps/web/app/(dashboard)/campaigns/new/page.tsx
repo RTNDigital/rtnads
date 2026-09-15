@@ -14,7 +14,7 @@ import Link from "next/link";
 interface Client { id: string; name: string; type: string; }
 interface PolicyResult { level: string; code: string; message: string; field?: string; }
 
-const STEPS = ["Basics", "Targeting & Budget", "Ad Set & Format", "Creative & Ad", "Review"];
+const STEPS = ["Temel Bilgiler", "Hedefleme & Bütçe", "Reklam Seti & Format", "Kreatif & Reklam", "Özet"];
 
 const EK53_COUNTRIES = [
   "Germany", "United States", "Azerbaijan", "United Arab Emirates",
@@ -297,7 +297,7 @@ export default function NewCampaignPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">New Campaign</h1>
+      <h1 className="text-2xl font-bold">Yeni Kampanya</h1>
 
       <div className="flex gap-2">
         {STEPS.map((s, i) => (
@@ -312,12 +312,12 @@ export default function NewCampaignPage() {
       {step === 0 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Campaign Name <span className="text-red-500">*</span></Label>
-            <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); setValidationErrors((v) => ({ ...v, name: "" })); }} placeholder="e.g. Rhinoplasty DE Q1 2026" className={validationErrors.name ? "border-red-500" : ""} />
+            <Label>Kampanya Adı <span className="text-red-500">*</span></Label>
+            <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); setValidationErrors((v) => ({ ...v, name: "" })); }} placeholder="ör. Burun Estetiği DE Q1 2026" className={validationErrors.name ? "border-red-500" : ""} />
             {validationErrors.name && <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>}
           </div>
           <div>
-            <Label>Client <span className="text-red-500">*</span></Label>
+            <Label>Müşteri <span className="text-red-500">*</span></Label>
             {clients.length === 0 ? (
               <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-3">
                 <span className="text-sm text-muted-foreground">Henüz müşteri yok.</span>
@@ -335,14 +335,14 @@ export default function NewCampaignPage() {
             {validationErrors.clientId && <p className="text-xs text-red-500 mt-1">{validationErrors.clientId}</p>}
           </div>
           <div>
-            <Label>Objective</Label>
+            <Label>Hedef</Label>
             <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.objective} onChange={(e) => updateField("objective", e.target.value)}>
               {OBJECTIVES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>
-            <Label>Treatment Category</Label>
-            <Input value={form.treatmentCategory} onChange={(e) => updateField("treatmentCategory", e.target.value)} placeholder="e.g. rhinoplasty, dental, bariatric" />
+            <Label>Tedavi Kategorisi</Label>
+            <Input value={form.treatmentCategory} onChange={(e) => updateField("treatmentCategory", e.target.value)} placeholder="ör. burun estetiği, diş, bariatrik" />
           </div>
         </Card>
       )}
@@ -350,7 +350,7 @@ export default function NewCampaignPage() {
       {step === 1 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Target Countries</Label>
+            <Label>Hedef Ülkeler</Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {ALL_COUNTRIES.map((country) => (
                 <button
@@ -369,21 +369,21 @@ export default function NewCampaignPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Daily Budget ({form.budgetCurrency})</Label>
+              <Label>Günlük Bütçe ({form.budgetCurrency})</Label>
               <Input type="number" value={form.dailyBudget} onChange={(e) => updateField("dailyBudget", e.target.value)} />
             </div>
             <div>
-              <Label>Lifetime Budget ({form.budgetCurrency})</Label>
+              <Label>Toplam Bütçe ({form.budgetCurrency})</Label>
               <Input type="number" value={form.lifetimeBudget} onChange={(e) => updateField("lifetimeBudget", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Start Date</Label>
+              <Label>Başlangıç Tarihi</Label>
               <Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} />
             </div>
             <div>
-              <Label>End Date</Label>
+              <Label>Bitiş Tarihi</Label>
               <Input type="date" value={form.endDate} onChange={(e) => updateField("endDate", e.target.value)} />
             </div>
           </div>
@@ -393,17 +393,17 @@ export default function NewCampaignPage() {
       {step === 2 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Ad Format</Label>
+            <Label>Reklam Formatı</Label>
             <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.adFormat} onChange={(e) => updateField("adFormat", e.target.value)}>
               {AD_FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
           </div>
           <div>
-            <Label>Bid Strategy</Label>
+            <Label>Teklif Stratejisi</Label>
             <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.bidStrategy} onChange={(e) => updateField("bidStrategy", e.target.value)}>
-              <option value="LOWEST_COST_WITHOUT_CAP">Lowest Cost (default)</option>
-              <option value="COST_CAP">Cost Cap</option>
-              <option value="BID_CAP">Bid Cap</option>
+              <option value="LOWEST_COST_WITHOUT_CAP">En Düşük Maliyet (varsayılan)</option>
+              <option value="COST_CAP">Maliyet Sınırı</option>
+              <option value="BID_CAP">Teklif Sınırı</option>
             </select>
           </div>
 
@@ -574,7 +574,7 @@ export default function NewCampaignPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Call to Action</Label>
+              <Label>Harekete Geçirici Mesaj</Label>
               <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.ctaType} onChange={(e) => updateField("ctaType", e.target.value)}>
                 {CTA_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
@@ -586,16 +586,16 @@ export default function NewCampaignPage() {
           </div>
 
           <div>
-            <Label>Ad Copy (Primary Text)</Label>
+            <Label>Reklam Metni</Label>
             <Textarea rows={4} value={form.adCopy} onChange={(e) => updateField("adCopy", e.target.value)} placeholder="Ana reklam metni..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Headline</Label>
+              <Label>Başlık</Label>
               <Input value={form.headline} onChange={(e) => updateField("headline", e.target.value)} placeholder="Reklam başlığı" />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>Açıklama</Label>
               <Input value={form.description} onChange={(e) => updateField("description", e.target.value)} placeholder="Kısa açıklama" />
             </div>
           </div>
@@ -653,7 +653,7 @@ export default function NewCampaignPage() {
           )}
           {policyResults.length > 0 && (
             <div className="mt-4 flex flex-col gap-2">
-              <h3 className="font-semibold">Policy Check Results</h3>
+              <h3 className="font-semibold">Politika Kontrol Sonuçları</h3>
               {policyResults.map((r, i) => (
                 <div key={i} className={`text-sm p-2 rounded ${r.level === "blocker" ? "bg-red-50 text-red-800 border border-red-200" : r.level === "warning" ? "bg-yellow-50 text-yellow-800 border border-yellow-200" : "bg-blue-50 text-blue-800 border border-blue-200"}`}>
                   <strong>{r.level.toUpperCase()}:</strong> {r.message}
@@ -666,15 +666,15 @@ export default function NewCampaignPage() {
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={() => { setValidationErrors({}); setStep((s) => Math.max(0, s - 1)); }} disabled={step === 0}>
-          Previous
+          Önceki
         </Button>
         {step < 4 ? (
           <Button onClick={() => { if (validateStep(step)) setStep((s) => s + 1); }}>
-            Next
+            Sonraki
           </Button>
         ) : (
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating..." : "Create Campaign"}
+            {submitting ? "Oluşturuluyor..." : "Kampanya Oluştur"}
           </Button>
         )}
       </div>
