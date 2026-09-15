@@ -43,19 +43,19 @@ export default async function LeadsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Leads</h1>
+      <h1 className="text-2xl font-bold">Leadler</h1>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead>Ad</TableHead>
             <TableHead>WhatsApp</TableHead>
-            <TableHead>Country</TableHead>
-            <TableHead>Campaign</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead>Ülke</TableHead>
+            <TableHead>Kampanya</TableHead>
+            <TableHead>Müşteri</TableHead>
+            <TableHead>Durum</TableHead>
+            <TableHead>Kaynak</TableHead>
+            <TableHead>Tarih</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
