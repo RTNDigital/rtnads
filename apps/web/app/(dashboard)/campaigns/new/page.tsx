@@ -14,7 +14,7 @@ import Link from "next/link";
 interface Client { id: string; name: string; type: string; }
 interface PolicyResult { level: string; code: string; message: string; field?: string; }
 
-const STEPS = ["Basics", "Targeting & Budget", "Ad Set & Format", "Creative & Ad", "Review"];
+const STEPS = ["Temel Bilgiler", "Hedefleme & Bütçe", "Reklam Seti & Format", "Kreatif & Reklam", "Özet"];
 
 const EK53_COUNTRIES = [
   "Germany", "United States", "Azerbaijan", "United Arab Emirates",
@@ -297,7 +297,7 @@ export default function NewCampaignPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
-      <h1 className="text-2xl font-bold">New Campaign</h1>
+      <h1 className="text-2xl font-bold">Yeni Kampanya</h1>
 
       <div className="flex gap-2">
         {STEPS.map((s, i) => (
@@ -312,12 +312,12 @@ export default function NewCampaignPage() {
       {step === 0 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Campaign Name <span className="text-red-500">*</span></Label>
-            <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); setValidationErrors((v) => ({ ...v, name: "" })); }} placeholder="e.g. Rhinoplasty DE Q1 2026" className={validationErrors.name ? "border-red-500" : ""} />
+            <Label>Kampanya Adı <span className="text-red-500">*</span></Label>
+            <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); setValidationErrors((v) => ({ ...v, name: "" })); }} placeholder="ör. Burun Estetiği DE Q1 2026" className={validationErrors.name ? "border-red-500" : ""} />
             {validationErrors.name && <p className="text-xs text-red-500 mt-1">{validationErrors.name}</p>}
           </div>
           <div>
-            <Label>Client <span className="text-red-500">*</span></Label>
+            <Label>Müşteri <span className="text-red-500">*</span></Label>
             {clients.length === 0 ? (
               <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-3">
                 <span className="text-sm text-muted-foreground">Henüz müşteri yok.</span>
@@ -335,14 +335,14 @@ export default function NewCampaignPage() {
             {validationErrors.clientId && <p className="text-xs text-red-500 mt-1">{validationErrors.clientId}</p>}
           </div>
           <div>
-            <Label>Objective</Label>
+            <Label>Hedef</Label>
             <select className="w-full rounded-md border px-3 py-2 text-sm" value={form.objective} onChange={(e) => updateField("objective", e.target.value)}>
               {OBJECTIVES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div>
-            <Label>Treatment Category</Label>
-            <Input value={form.treatmentCategory} onChange={(e) => updateField("treatmentCategory", e.target.value)} placeholder="e.g. rhinoplasty, dental, bariatric" />
+            <Label>Tedavi Kategorisi</Label>
+            <Input value={form.treatmentCategory} onChange={(e) => updateField("treatmentCategory", e.target.value)} placeholder="ör. burun estetiği, diş, bariatrik" />
           </div>
         </Card>
       )}
@@ -350,7 +350,7 @@ export default function NewCampaignPage() {
       {step === 1 && (
         <Card className="p-6 flex flex-col gap-4">
           <div>
-            <Label>Target Countries</Label>
+            <Label>Hedef Ülkeler</Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {ALL_COUNTRIES.map((country) => (
                 <button

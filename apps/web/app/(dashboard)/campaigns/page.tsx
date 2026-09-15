@@ -56,13 +56,13 @@ export default async function CampaignsPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Campaign</TableHead>
+            <TableHead>Kampanya</TableHead>
             <TableHead>Platform</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Objective</TableHead>
-            <TableHead>Daily Budget</TableHead>
-            <TableHead>Category</TableHead>
+            <TableHead>Müşteri</TableHead>
+            <TableHead>Durum</TableHead>
+            <TableHead>Hedef</TableHead>
+            <TableHead>Günlük Bütçe</TableHead>
+            <TableHead>Kategori</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
