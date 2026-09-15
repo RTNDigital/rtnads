@@ -46,10 +46,10 @@ export default async function CampaignsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Campaigns</h1>
+        <h1 className="text-2xl font-bold">Kampanyalar</h1>
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/campaigns?sync=true">Sync Now</Link>} />
-          <Button render={<Link href="/campaigns/new">New Campaign</Link>} />
+          <Button variant="outline" render={<Link href="/campaigns?sync=true">Şimdi Senkronize Et</Link>} />
+          <Button render={<Link href="/campaigns/new">Yeni Kampanya</Link>} />
         </div>
       </div>
 
